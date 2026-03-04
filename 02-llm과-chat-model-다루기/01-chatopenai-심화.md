@@ -6,7 +6,7 @@
 
 이 섹션에서는 LangChain의 `ChatOpenAI` 클래스가 제공하는 다양한 모델 파라미터를 깊이 있게 살펴봅니다. 단순히 "모델을 호출한다"를 넘어서, **어떻게 호출하느냐**에 따라 응답의 품질, 창의성, 그리고 비용이 크게 달라진다는 사실을 직접 확인하게 될 거예요.
 
-**선수 지식**: [Ch1: LangChain 소개와 개발 환경 설정](ch01)에서 배운 LangChain 설치, `.env` 설정, 그리고 `ChatOpenAI` 기본 사용법
+**선수 지식**: [Ch1: LangChain 소개와 개발 환경 설정](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md)에서 배운 LangChain 설치, `.env` 설정, 그리고 `ChatOpenAI` 기본 사용법
 **학습 목표**:
 - `temperature`, `top_p`, `frequency_penalty`, `presence_penalty` 파라미터의 원리와 효과를 이해한다
 - `usage_metadata`와 `get_openai_callback`을 사용하여 토큰 사용량을 정확히 추적할 수 있다
@@ -352,7 +352,7 @@ for model_name in models:
 
 ## 다음 섹션 미리보기
 
-이번 섹션에서 OpenAI 모델의 파라미터를 세밀하게 다루는 법을 배웠다면, 다음 섹션 **[2.2: 다양한 Chat Model 프로바이더](ch02/session2)**에서는 Anthropic(Claude), Google(Gemini), 오픈소스 모델 등 **OpenAI 이외의 LLM 프로바이더**를 LangChain에서 연동하는 방법을 알아봅니다. 모델을 하나만 알면 종속되지만, 여러 모델을 다룰 줄 알면 선택지가 생기죠.
+이번 섹션에서 OpenAI 모델의 파라미터를 세밀하게 다루는 법을 배웠다면, 다음 섹션 **[2.2: 다양한 Chat Model 프로바이더](./02-다중-프로바이더-연동.md)**에서는 Anthropic(Claude), Google(Gemini), 오픈소스 모델 등 **OpenAI 이외의 LLM 프로바이더**를 LangChain에서 연동하는 방법을 알아봅니다. 모델을 하나만 알면 종속되지만, 여러 모델을 다룰 줄 알면 선택지가 생기죠.
 
 ## 참고 자료
 

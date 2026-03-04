@@ -4,7 +4,7 @@
 
 ## 개요
 
-이 섹션에서는 LangSmith의 핵심 기능인 프로젝트와 실행(Run) 관리, 트레이스 필터링과 검색, 프로그래밍 방식의 피드백 수집, 그리고 주석(Annotation) 큐를 깊이 있게 다룹니다. 앞서 [16.1: 콜백 시스템 이해](ch16/session_16_1.md)와 [16.2: 커스텀 콜백 핸들러](ch16/session_16_2.md)에서 콜백을 통해 실행 이벤트를 추적하는 방법을 배웠다면, 이번 섹션에서는 그 데이터가 **LangSmith 플랫폼에서 어떻게 구조화되고, 검색되며, 평가에 활용되는지** 전체 그림을 완성합니다.
+이 섹션에서는 LangSmith의 핵심 기능인 프로젝트와 실행(Run) 관리, 트레이스 필터링과 검색, 프로그래밍 방식의 피드백 수집, 그리고 주석(Annotation) 큐를 깊이 있게 다룹니다. 앞서 [16.1: 콜백 시스템 이해](./01-콜백-시스템-이해.md)와 [16.2: 커스텀 콜백 핸들러](./02-커스텀-콜백-핸들러.md)에서 콜백을 통해 실행 이벤트를 추적하는 방법을 배웠다면, 이번 섹션에서는 그 데이터가 **LangSmith 플랫폼에서 어떻게 구조화되고, 검색되며, 평가에 활용되는지** 전체 그림을 완성합니다.
 
 **선수 지식**: 콜백 시스템의 동작 원리(16.1), 커스텀 콜백 핸들러 작성법(16.2), LangChain 기본 체인 구성(Ch5 LCEL)
 **학습 목표**:
@@ -599,7 +599,7 @@ LangSmith는 이 세 기둥을 LLM 앱에 맞게 재해석하여, 피드백(Feed
 
 ## 다음 섹션 미리보기
 
-이번 섹션에서 LangSmith로 트레이스를 관리하고 피드백을 수집하는 방법을 배웠다면, 다음 섹션 **[16.4: LLM 애플리케이션 평가 파이프라인](ch16/session_16_4.md)**에서는 수집된 데이터를 활용해 **체계적인 평가(Evaluation)**를 수행하는 방법을 다룹니다. 데이터셋 생성, 자동화된 평가 메트릭, 그리고 LangSmith Evaluation 기능을 활용한 A/B 테스트까지 — 피드백 루프의 다음 단계로 나아갑니다.
+이번 섹션에서 LangSmith로 트레이스를 관리하고 피드백을 수집하는 방법을 배웠다면, 다음 섹션 **[16.4: LLM 애플리케이션 평가 파이프라인](./04-llm-애플리케이션-평가.md)**에서는 수집된 데이터를 활용해 **체계적인 평가(Evaluation)**를 수행하는 방법을 다룹니다. 데이터셋 생성, 자동화된 평가 메트릭, 그리고 LangSmith Evaluation 기능을 활용한 A/B 테스트까지 — 피드백 루프의 다음 단계로 나아갑니다.
 
 ## 참고 자료
 
@@ -612,9 +612,9 @@ LangSmith는 이 세 기둥을 LLM 앱에 맞게 재해석하여, 피드백(Feed
 
 ---
 ### 🔗 Related Sessions
-- [lcel](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [chain](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [callback_handler](../16-콜백과-관찰-가능성/01-콜백-시스템-이해.md) (prerequisite)
-- [callback_propagation](../16-콜백과-관찰-가능성/01-콜백-시스템-이해.md) (prerequisite)
-- [constructor_callback](../16-콜백과-관찰-가능성/01-콜백-시스템-이해.md) (prerequisite)
-- [request_callback](../16-콜백과-관찰-가능성/01-콜백-시스템-이해.md) (prerequisite)
+- [lcel](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [chain](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [callback_handler](./01-콜백-시스템-이해.md) (prerequisite)
+- [callback_propagation](./01-콜백-시스템-이해.md) (prerequisite)
+- [constructor_callback](./01-콜백-시스템-이해.md) (prerequisite)
+- [request_callback](./01-콜백-시스템-이해.md) (prerequisite)

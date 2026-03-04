@@ -420,7 +420,7 @@ class Runnable:
 
 ---
 ### 🔗 Related Sessions
-- [langchain](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [prompt_template](../03-프롬프트-엔지니어링과-템플릿/01-chatprompttemplate-기초.md) (prerequisite)
-- [chain](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [output_parser](../04-출력-파서와-구조화된-출력/01-출력-파서-기초.md) (prerequisite)
+- [langchain](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [prompt_template](03-프롬프트-엔지니어링과-템플릿/01-chatprompttemplate-기초.md) (prerequisite)
+- [chain](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [output_parser](04-출력-파서와-구조화된-출력/01-출력-파서-기초.md) (prerequisite)

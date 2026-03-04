@@ -6,7 +6,7 @@
 
 이 섹션에서는 LangChain의 `FewShotChatMessagePromptTemplate`을 사용해 Few-shot 프롬프트를 체계적으로 구성하는 방법을 배웁니다. 고정 예제부터 시작하여, `SemanticSimilarityExampleSelector`로 입력에 맞는 예제를 자동으로 골라주는 동적 선택까지 다룹니다.
 
-**선수 지식**: [Session 3.1: ChatPromptTemplate 기초](ch03/session_3_1.md)에서 배운 `ChatPromptTemplate.from_messages()`와 `invoke()`, [Session 3.2: 고급 프롬프트 패턴](ch03/session_3_2.md)에서 배운 `MessagesPlaceholder`
+**선수 지식**: [Session 3.1: ChatPromptTemplate 기초](./01-chatprompttemplate-기초.md)에서 배운 `ChatPromptTemplate.from_messages()`와 `invoke()`, [Session 3.2: 고급 프롬프트 패턴](./02-고급-프롬프트-패턴.md)에서 배운 `MessagesPlaceholder`
 
 **학습 목표**:
 - `FewShotChatMessagePromptTemplate`으로 Few-shot 프롬프트를 구성할 수 있다
@@ -246,7 +246,7 @@ mmr_selector = MaxMarginalRelevanceExampleSelector.from_examples(
 )
 ```
 
-앞서 [Session 3.2: 고급 프롬프트 패턴](ch03/session_3_2.md)에서 배운 `RunnableBranch`와 결합하면, 입력 유형에 따라 다른 예제 선택 전략을 적용하는 것도 가능합니다.
+앞서 [Session 3.2: 고급 프롬프트 패턴](./02-고급-프롬프트-패턴.md)에서 배운 `RunnableBranch`와 결합하면, 입력 유형에 따라 다른 예제 선택 전략을 적용하는 것도 가능합니다.
 
 ## 실습: 직접 해보기
 
@@ -451,7 +451,7 @@ Few-shot 프롬프팅이라는 개념이 세상을 놀라게 한 건 2020년, Op
 
 ## 다음 섹션 미리보기
 
-이번 섹션에서 Few-shot 프롬프팅으로 LLM에게 "이렇게 해줘"라는 패턴을 보여주는 방법을 배웠습니다. 다음 섹션 **[Session 3.4: 프롬프트 합성과 파이프라인](ch03/session_3_4.md)**에서는 여러 프롬프트를 조합하고 단계별로 연결하는 프롬프트 파이프라인을 다룹니다. 프롬프트 재사용성을 극대화하고, 복잡한 작업을 작은 프롬프트 단위로 분해하는 전략을 배울 거예요.
+이번 섹션에서 Few-shot 프롬프팅으로 LLM에게 "이렇게 해줘"라는 패턴을 보여주는 방법을 배웠습니다. 다음 섹션 **[Session 3.4: 프롬프트 합성과 파이프라인](./04-프롬프트-관리와-langchain-hub.md)**에서는 여러 프롬프트를 조합하고 단계별로 연결하는 프롬프트 파이프라인을 다룹니다. 프롬프트 재사용성을 극대화하고, 복잡한 작업을 작은 프롬프트 단위로 분해하는 전략을 배울 거예요.
 
 ## 참고 자료
 
@@ -463,9 +463,9 @@ Few-shot 프롬프팅이라는 개념이 세상을 놀라게 한 건 2020년, Op
 
 ---
 ### 🔗 Related Sessions
-- [lcel](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [invoke](../01-langchain-소개와-개발-환경-설정/04-첫-번째-langchain-애플리케이션.md) (prerequisite)
-- [chatprompttemplate](../01-langchain-소개와-개발-환경-설정/04-첫-번째-langchain-애플리케이션.md) (prerequisite)
-- [messagesplaceholder](../03-프롬프트-엔지니어링과-템플릿/02-고급-프롬프트-패턴.md) (prerequisite)
-- [runnablebranch](../03-프롬프트-엔지니어링과-템플릿/02-고급-프롬프트-패턴.md) (prerequisite)
-- [embedding](../07-임베딩과-벡터-스토어/01-텍스트-임베딩-이해.md) (prerequisite)
+- [lcel](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [invoke](01-langchain-소개와-개발-환경-설정/04-첫-번째-langchain-애플리케이션.md) (prerequisite)
+- [chatprompttemplate](01-langchain-소개와-개발-환경-설정/04-첫-번째-langchain-애플리케이션.md) (prerequisite)
+- [messagesplaceholder](./02-고급-프롬프트-패턴.md) (prerequisite)
+- [runnablebranch](./02-고급-프롬프트-패턴.md) (prerequisite)
+- [embedding](07-임베딩과-벡터-스토어/01-텍스트-임베딩-이해.md) (prerequisite)

@@ -4,9 +4,9 @@
 
 ## 개요
 
-이 섹션에서는 LCEL 체인의 데이터 흐름을 정밀하게 제어하는 핵심 Runnable 컴포넌트들을 학습합니다. [5.1 LCEL 기초와 파이프 연산자](ch05/session_01.md)에서 배운 파이프 연산자(`|`)와 Runnable 프로토콜을 기반으로, 이제 데이터를 통과시키고, 분기하고, 변환하는 방법을 익힙니다.
+이 섹션에서는 LCEL 체인의 데이터 흐름을 정밀하게 제어하는 핵심 Runnable 컴포넌트들을 학습합니다. [5.1 LCEL 기초와 파이프 연산자](./01-lcel-기초와-파이프-연산자.md)에서 배운 파이프 연산자(`|`)와 Runnable 프로토콜을 기반으로, 이제 데이터를 통과시키고, 분기하고, 변환하는 방법을 익힙니다.
 
-**선수 지식**: Runnable 프로토콜과 파이프 연산자(`|`)의 기본 동작 원리, `invoke`/`stream`/`batch` 메서드 사용법 ([5.1 LCEL 기초와 파이프 연산자](ch05/session_01.md))
+**선수 지식**: Runnable 프로토콜과 파이프 연산자(`|`)의 기본 동작 원리, `invoke`/`stream`/`batch` 메서드 사용법 ([5.1 LCEL 기초와 파이프 연산자](./01-lcel-기초와-파이프-연산자.md))
 
 **학습 목표**:
 - `RunnablePassthrough`로 입력 데이터를 유지하면서 중간 처리를 수행할 수 있다
@@ -448,8 +448,8 @@ Harrison Chase가 2022년 10월 LangChain을 처음 공개했을 때, 체인 구
 
 ---
 ### 🔗 Related Sessions
-- [lcel_pipe_operator](../05-lcellangchain-expression-language-마스터/01-lcel-기초와-파이프-연산자.md) (prerequisite)
-- [runnable_protocol](../05-lcellangchain-expression-language-마스터/01-lcel-기초와-파이프-연산자.md) (prerequisite)
-- [runnable_sequence](../05-lcellangchain-expression-language-마스터/01-lcel-기초와-파이프-연산자.md) (prerequisite)
-- [invoke_method](../05-lcellangchain-expression-language-마스터/01-lcel-기초와-파이프-연산자.md) (prerequisite)
-- [batch_method](../05-lcellangchain-expression-language-마스터/01-lcel-기초와-파이프-연산자.md) (prerequisite)
+- [lcel_pipe_operator](./01-lcel-기초와-파이프-연산자.md) (prerequisite)
+- [runnable_protocol](./01-lcel-기초와-파이프-연산자.md) (prerequisite)
+- [runnable_sequence](./01-lcel-기초와-파이프-연산자.md) (prerequisite)
+- [invoke_method](./01-lcel-기초와-파이프-연산자.md) (prerequisite)
+- [batch_method](./01-lcel-기초와-파이프-연산자.md) (prerequisite)

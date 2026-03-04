@@ -4,9 +4,9 @@
 
 ## 개요
 
-이 섹션에서는 LangChain의 `RunnableWithMessageHistory`를 학습합니다. 앞서 [세션 10.1: 메시지 히스토리 기초](ch10/session_10_1.md)에서 `InMemoryChatMessageHistory`로 메시지를 수동으로 추가하고 조회하는 방법을 배웠는데요, 이번에는 그 히스토리를 **LCEL 체인에 자동으로 연결**하는 방법을 다룹니다.
+이 섹션에서는 LangChain의 `RunnableWithMessageHistory`를 학습합니다. 앞서 [세션 10.1: 메시지 히스토리 기초](./01-메시지-히스토리-기초.md)에서 `InMemoryChatMessageHistory`로 메시지를 수동으로 추가하고 조회하는 방법을 배웠는데요, 이번에는 그 히스토리를 **LCEL 체인에 자동으로 연결**하는 방법을 다룹니다.
 
-**선수 지식**: 세션 10.1의 `BaseChatMessageHistory`, `InMemoryChatMessageHistory`, `session_id` 패턴, 그리고 [챕터 5](ch05/)에서 배운 LCEL 파이프 연산자(`|`)와 `Runnable` 인터페이스
+**선수 지식**: 세션 10.1의 `BaseChatMessageHistory`, `InMemoryChatMessageHistory`, `session_id` 패턴, 그리고 [챕터 5](05-lcellangchain-expression-language-마스터/01-lcel-기초와-파이프-연산자.md)에서 배운 LCEL 파이프 연산자(`|`)와 `Runnable` 인터페이스
 
 **학습 목표**:
 - `RunnableWithMessageHistory`의 동작 원리(Load → Run → Save 패턴)를 이해한다
@@ -401,7 +401,7 @@ LangChain 창립자 해리슨 체이스(Harrison Chase)와 팀은 2023년 말~20
 
 ## 다음 섹션 미리보기
 
-이번 섹션에서는 인메모리(`InMemoryChatMessageHistory`) 기반의 히스토리 관리를 다뤘는데요, 서버가 재시작되면 모든 대화가 사라진다는 치명적인 한계가 있습니다. 다음 섹션 **[세션 10.3: 영구 메모리 저장소](ch10/session_10_3.md)**에서는 Redis, SQLite, PostgreSQL 등 **영구 저장소**에 대화 히스토리를 저장하고 복원하는 방법을 학습합니다. `get_session_history` 함수만 교체하면 된다는 이번 섹션의 설계가 어떻게 빛을 발하는지 직접 확인해보세요.
+이번 섹션에서는 인메모리(`InMemoryChatMessageHistory`) 기반의 히스토리 관리를 다뤘는데요, 서버가 재시작되면 모든 대화가 사라진다는 치명적인 한계가 있습니다. 다음 섹션 **[세션 10.3: 영구 메모리 저장소](./03-영구-메시지-저장소.md)**에서는 Redis, SQLite, PostgreSQL 등 **영구 저장소**에 대화 히스토리를 저장하고 복원하는 방법을 학습합니다. `get_session_history` 함수만 교체하면 된다는 이번 섹션의 설계가 어떻게 빛을 발하는지 직접 확인해보세요.
 
 ## 참고 자료
 
@@ -412,11 +412,11 @@ LangChain 창립자 해리슨 체이스(Harrison Chase)와 팀은 2023년 말~20
 
 ---
 ### 🔗 Related Sessions
-- [lcel](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [runnable](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [chatprompttemplate](../01-langchain-소개와-개발-환경-설정/04-첫-번째-langchain-애플리케이션.md) (prerequisite)
-- [messagesplaceholder](../03-프롬프트-엔지니어링과-템플릿/02-고급-프롬프트-패턴.md) (prerequisite)
-- [basechatmessagehistory](../10-메모리와-대화-관리/01-메시지-히스토리-기초.md) (prerequisite)
-- [inmemorychatmessagehistory](../10-메모리와-대화-관리/01-메시지-히스토리-기초.md) (prerequisite)
-- [session_id_pattern](../10-메모리와-대화-관리/01-메시지-히스토리-기초.md) (prerequisite)
-- [get_session_history](../09-ragretrieval-augmented-generation-구축/03-대화형-rag.md) (prerequisite)
+- [lcel](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [runnable](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [chatprompttemplate](01-langchain-소개와-개발-환경-설정/04-첫-번째-langchain-애플리케이션.md) (prerequisite)
+- [messagesplaceholder](03-프롬프트-엔지니어링과-템플릿/02-고급-프롬프트-패턴.md) (prerequisite)
+- [basechatmessagehistory](./01-메시지-히스토리-기초.md) (prerequisite)
+- [inmemorychatmessagehistory](./01-메시지-히스토리-기초.md) (prerequisite)
+- [session_id_pattern](./01-메시지-히스토리-기초.md) (prerequisite)
+- [get_session_history](09-ragretrieval-augmented-generation-구축/03-대화형-rag.md) (prerequisite)

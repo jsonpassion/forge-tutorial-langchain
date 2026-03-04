@@ -4,7 +4,7 @@
 
 ## 개요
 
-이 섹션에서는 [세션 12.1: 에이전트 개념과 ReAct 패턴](ch12/session_12_1.md)에서 배운 ReAct 패턴 이론을 실제 코드로 구현합니다. `create_react_agent` 함수의 구조를 이해하고, ReAct 프롬프트 템플릿을 구성하며, `AgentExecutor`로 에이전트를 실행하는 전체 조립 과정을 익힙니다.
+이 섹션에서는 [세션 12.1: 에이전트 개념과 ReAct 패턴](./01-에이전트-개념과-react-패턴.md)에서 배운 ReAct 패턴 이론을 실제 코드로 구현합니다. `create_react_agent` 함수의 구조를 이해하고, ReAct 프롬프트 템플릿을 구성하며, `AgentExecutor`로 에이전트를 실행하는 전체 조립 과정을 익힙니다.
 
 **선수 지식**: 에이전트 개념과 ReAct 패턴(Thought→Action→Observation 루프), `@tool` 데코레이터 기본 사용법, LCEL 파이프라인 구성
 **학습 목표**:
@@ -137,7 +137,7 @@ print(result["output"])
 
 `max_iterations`는 도구 호출 최대 횟수로, 에이전트가 답을 찾지 못하고 끝없이 반복하는 것을 방지합니다. 기본적으로 5~15 사이가 적당합니다.
 
-`AgentExecutor`에는 이 외에도 에러 처리(`handle_parsing_errors`), 실행 시간 제한(`max_execution_time`), 조기 종료 방식(`early_stopping_method`), 중간 단계 반환(`return_intermediate_steps`) 등 다양한 제어 파라미터가 있습니다. 이들의 상세 동작과 프로덕션 환경 설정은 [다음 세션: AgentExecutor 설정과 제어](ch12/session_12_3.md)에서 깊이 있게 다루겠습니다.
+`AgentExecutor`에는 이 외에도 에러 처리(`handle_parsing_errors`), 실행 시간 제한(`max_execution_time`), 조기 종료 방식(`early_stopping_method`), 중간 단계 반환(`return_intermediate_steps`) 등 다양한 제어 파라미터가 있습니다. 이들의 상세 동작과 프로덕션 환경 설정은 [다음 세션: AgentExecutor 설정과 제어](./03-agentexecutor-설정과-제어.md)에서 깊이 있게 다루겠습니다.
 
 ### 개념 4: 전체 조립 — LLM + 도구 + 프롬프트 + 실행기
 
@@ -423,7 +423,7 @@ LangChain에는 에이전트를 만드는 또 다른 방법인 `create_tool_call
 
 > 🔥 **실무 팁**: 프롬프트 템플릿에서 `{agent_scratchpad}`는 반드시 **마지막**에 위치해야 합니다. LLM이 이전 추론 기록 바로 이어서 다음 Thought를 생성해야 하기 때문이에요. `{agent_scratchpad}` 뒤에 다른 텍스트를 넣으면 에이전트의 추론 흐름이 깨질 수 있습니다.
 
-> 🔥 **실무 팁**: 도구의 docstring(설명)이 에이전트의 도구 선택 정확도를 좌우합니다. `{tools}` 변수에 이 설명이 그대로 삽입되기 때문이에요. "데이터를 처리합니다"처럼 모호한 설명보다 "주어진 도시 이름으로 현재 날씨와 기온을 반환합니다"처럼 구체적으로 작성하세요. 도구 설계에 대해서는 [세션 12.4: 에이전트 도구 설계](ch12/session_12_4.md)에서 더 깊이 다룹니다.
+> 🔥 **실무 팁**: 도구의 docstring(설명)이 에이전트의 도구 선택 정확도를 좌우합니다. `{tools}` 변수에 이 설명이 그대로 삽입되기 때문이에요. "데이터를 처리합니다"처럼 모호한 설명보다 "주어진 도시 이름으로 현재 날씨와 기온을 반환합니다"처럼 구체적으로 작성하세요. 도구 설계에 대해서는 [세션 12.4: 에이전트 도구 설계](./04-에이전트-도구-설계.md)에서 더 깊이 다룹니다.
 
 ## 핵심 정리
 
@@ -440,7 +440,7 @@ LangChain에는 에이전트를 만드는 또 다른 방법인 `create_tool_call
 
 ## 다음 섹션 미리보기
 
-에이전트를 조립하고 실행하는 기본기를 익혔으니, 이제 에이전트의 동작을 **세밀하게 제어**할 차례입니다. [다음 세션: AgentExecutor 설정과 제어](ch12/session_12_3.md)에서는 `max_iterations`, `max_execution_time`, `handle_parsing_errors`, `early_stopping_method`, `return_intermediate_steps` 등 `AgentExecutor`의 핵심 파라미터를 하나씩 깊이 파고듭니다. 에이전트를 프로덕션에서 안전하고 예측 가능하게 운영하는 데 꼭 필요한 내용이니 기대해 주세요.
+에이전트를 조립하고 실행하는 기본기를 익혔으니, 이제 에이전트의 동작을 **세밀하게 제어**할 차례입니다. [다음 세션: AgentExecutor 설정과 제어](./03-agentexecutor-설정과-제어.md)에서는 `max_iterations`, `max_execution_time`, `handle_parsing_errors`, `early_stopping_method`, `return_intermediate_steps` 등 `AgentExecutor`의 핵심 파라미터를 하나씩 깊이 파고듭니다. 에이전트를 프로덕션에서 안전하고 예측 가능하게 운영하는 데 꼭 필요한 내용이니 기대해 주세요.
 
 ## 참고 자료
 
@@ -452,8 +452,8 @@ LangChain에는 에이전트를 만드는 또 다른 방법인 `create_tool_call
 
 ---
 ### 🔗 Related Sessions
-- [tool](../11-도구tools와-함수-호출/01-도구-정의와-바인딩.md) (prerequisite)
-- [agent](../12-에이전트agent-기초/01-에이전트-개념과-react-패턴.md) (prerequisite)
-- [react_pattern](../12-에이전트agent-기초/01-에이전트-개념과-react-패턴.md) (prerequisite)
-- [agent_executor](../12-에이전트agent-기초/01-에이전트-개념과-react-패턴.md) (prerequisite)
-- [intermediate_steps](../12-에이전트agent-기초/01-에이전트-개념과-react-패턴.md) (prerequisite)
+- [tool](11-도구tools와-함수-호출/01-도구-정의와-바인딩.md) (prerequisite)
+- [agent](./01-에이전트-개념과-react-패턴.md) (prerequisite)
+- [react_pattern](./01-에이전트-개념과-react-패턴.md) (prerequisite)
+- [agent_executor](./01-에이전트-개념과-react-패턴.md) (prerequisite)
+- [intermediate_steps](./01-에이전트-개념과-react-패턴.md) (prerequisite)

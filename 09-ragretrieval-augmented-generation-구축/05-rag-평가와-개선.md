@@ -6,7 +6,7 @@
 
 이 섹션에서는 RAG 시스템을 "감"이 아닌 "숫자"로 평가하는 방법을 배웁니다. 먼저 수동 평가의 한계를 이해한 뒤, RAGAS 프레임워크의 핵심 메트릭(충실도, 관련성, 정밀도, 재현율)을 단계별로 학습합니다. 평가 데이터셋을 체계적으로 구축하는 방법을 익히고, 기본 RAG 체인과 개선된 RAG 체인의 성능 차이를 RAGAS로 비교하는 실습까지 진행합니다.
 
-**선수 지식**: 앞서 [9.1 기본 RAG 체인 구축](ch09/session_01.md)에서 배운 RAG 파이프라인 5단계, [9.4 고급 RAG 패턴](ch09/session_04.md)에서 다룬 HyDE, 재랭킹, Multi-Query Retriever 등의 고급 검색 기법
+**선수 지식**: 앞서 [9.1 기본 RAG 체인 구축](./01-기본-rag-체인-구축.md)에서 배운 RAG 파이프라인 5단계, [9.4 고급 RAG 패턴](./04-고급-rag-패턴.md)에서 다룬 HyDE, 재랭킹, Multi-Query Retriever 등의 고급 검색 기법
 
 **학습 목표**:
 - RAG 평가가 왜 "검색"과 "생성"을 분리해서 측정해야 하는지 설명할 수 있다
@@ -20,9 +20,9 @@
 
 실제로 RAG 시스템을 배포하면 다양한 문제가 발생합니다. 검색된 문서가 질문과 관련이 없거나, 관련 문서를 찾았는데 LLM이 엉뚱한 답변을 만들거나(할루시네이션), 답변은 정확한데 질문의 핵심을 벗어나는 경우도 있죠. 이런 문제들을 "느낌"으로 잡는 건 한계가 있습니다.
 
-[9.4 고급 RAG 패턴](ch09/session_04.md)에서 ParentDocumentRetriever, HyDE, Cross-Encoder 재랭킹 등 다양한 기법을 배웠는데요, 이 기법들이 **실제로 얼마나 효과가 있는지** 어떻게 알 수 있을까요? "A 방식이 B 방식보다 낫다"고 말하려면 **정량적 증거**가 필요합니다.
+[9.4 고급 RAG 패턴](./04-고급-rag-패턴.md)에서 ParentDocumentRetriever, HyDE, Cross-Encoder 재랭킹 등 다양한 기법을 배웠는데요, 이 기법들이 **실제로 얼마나 효과가 있는지** 어떻게 알 수 있을까요? "A 방식이 B 방식보다 낫다"고 말하려면 **정량적 증거**가 필요합니다.
 
-하지만 평가를 처음부터 복잡하게 시작할 필요는 없습니다. 이번 세션에서는 **RAGAS 프레임워크 하나에 집중**하여 RAG 평가의 기초를 탄탄히 다지겠습니다. 다음 [9.6 프로덕션 RAG 아키텍처](ch09/session_06.md)에서 LangSmith를 활용한 체계적 모니터링과 A/B 테스트 프레임워크를 다룰 예정이니, 이번 세션에서 배운 메트릭 개념이 그 기반이 됩니다.
+하지만 평가를 처음부터 복잡하게 시작할 필요는 없습니다. 이번 세션에서는 **RAGAS 프레임워크 하나에 집중**하여 RAG 평가의 기초를 탄탄히 다지겠습니다. 다음 [9.6 프로덕션 RAG 아키텍처](./06-프로덕션-rag-아키텍처.md)에서 LangSmith를 활용한 체계적 모니터링과 A/B 테스트 프레임워크를 다룰 예정이니, 이번 세션에서 배운 메트릭 개념이 그 기반이 됩니다.
 
 ## 핵심 개념
 
@@ -653,7 +653,7 @@ $$\text{Answer Relevancy} = \frac{1}{N} \sum_{i=1}^{N} \text{sim}(q, q_i)$$
 
 ## 다음 섹션 미리보기
 
-이번 세션에서 RAGAS 메트릭을 이해하고 RAG 시스템을 정량적으로 평가하는 기초를 다졌으니, 다음 [9.6 프로덕션 RAG 아키텍처](ch09/session_06.md)에서는 이를 실제 서비스에 적용합니다. **LangSmith를 활용한 체계적 모니터링 파이프라인** 구축, **A/B 테스트 프레임워크**로 고급 RAG 패턴(HyDE, 재랭킹 등)의 효과를 정량 비교하는 방법, 그리고 캐싱 전략, 비용 최적화, 확장 가능한 아키텍처 패턴을 함께 다룹니다.
+이번 세션에서 RAGAS 메트릭을 이해하고 RAG 시스템을 정량적으로 평가하는 기초를 다졌으니, 다음 [9.6 프로덕션 RAG 아키텍처](./06-프로덕션-rag-아키텍처.md)에서는 이를 실제 서비스에 적용합니다. **LangSmith를 활용한 체계적 모니터링 파이프라인** 구축, **A/B 테스트 프레임워크**로 고급 RAG 패턴(HyDE, 재랭킹 등)의 효과를 정량 비교하는 방법, 그리고 캐싱 전략, 비용 최적화, 확장 가능한 아키텍처 패턴을 함께 다룹니다.
 
 ## 참고 자료
 
@@ -665,11 +665,11 @@ $$\text{Answer Relevancy} = \frac{1}{N} \sum_{i=1}^{N} \text{sim}(q, q_i)$$
 
 ---
 ### 🔗 Related Sessions
-- [rag_pipeline](../09-ragretrieval-augmented-generation-구축/01-기본-rag-체인-구축.md) (prerequisite)
-- [format_docs](../09-ragretrieval-augmented-generation-구축/01-기본-rag-체인-구축.md) (prerequisite)
-- [retrieval_chain](../09-ragretrieval-augmented-generation-구축/01-기본-rag-체인-구축.md) (prerequisite)
-- [stuff_documents_chain](../09-ragretrieval-augmented-generation-구축/01-기본-rag-체인-구축.md) (prerequisite)
-- [production_rag_prompt](../09-ragretrieval-augmented-generation-구축/02-rag-프롬프트-최적화.md) (prerequisite)
-- [hyde_embeddings](../09-ragretrieval-augmented-generation-구축/04-고급-rag-패턴.md) (prerequisite)
-- [cross_encoder_reranker](../09-ragretrieval-augmented-generation-구축/04-고급-rag-패턴.md) (prerequisite)
-- [multi_query_retriever](../09-ragretrieval-augmented-generation-구축/04-고급-rag-패턴.md) (prerequisite)
+- [rag_pipeline](./01-기본-rag-체인-구축.md) (prerequisite)
+- [format_docs](./01-기본-rag-체인-구축.md) (prerequisite)
+- [retrieval_chain](./01-기본-rag-체인-구축.md) (prerequisite)
+- [stuff_documents_chain](./01-기본-rag-체인-구축.md) (prerequisite)
+- [production_rag_prompt](./02-rag-프롬프트-최적화.md) (prerequisite)
+- [hyde_embeddings](./04-고급-rag-패턴.md) (prerequisite)
+- [cross_encoder_reranker](./04-고급-rag-패턴.md) (prerequisite)
+- [multi_query_retriever](./04-고급-rag-패턴.md) (prerequisite)

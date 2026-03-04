@@ -4,7 +4,7 @@
 
 ## 개요
 
-이 섹션에서는 AgentExecutor의 **실행 제어 파라미터**를 심층적으로 다룹니다. [세션 12.2: create_react_agent로 에이전트 구축](ch12/session_12_2.md)에서 AgentExecutor의 기본 사용법을 배웠다면, 이번에는 에이전트가 "폭주"하지 않도록 안전장치를 설정하고, 오류 상황을 우아하게 처리하며, 에이전트의 추론 과정을 투명하게 들여다보는 방법을 익힙니다.
+이 섹션에서는 AgentExecutor의 **실행 제어 파라미터**를 심층적으로 다룹니다. [세션 12.2: create_react_agent로 에이전트 구축](./02-create-react-agent로-에이전트-구축.md)에서 AgentExecutor의 기본 사용법을 배웠다면, 이번에는 에이전트가 "폭주"하지 않도록 안전장치를 설정하고, 오류 상황을 우아하게 처리하며, 에이전트의 추론 과정을 투명하게 들여다보는 방법을 익힙니다.
 
 **선수 지식**: 세션 12.1의 ReAct 패턴과 Thought→Action→Observation 루프, 세션 12.2의 `create_react_agent` 및 `AgentExecutor` 기본 구성
 
@@ -515,9 +515,9 @@ LangChain 팀은 AgentExecutor의 한계를 인식하고 **LangGraph**라는 새
 
 ---
 ### 🔗 Related Sessions
-- [agent](../12-에이전트agent-기초/01-에이전트-개념과-react-패턴.md) (prerequisite)
-- [react_pattern](../12-에이전트agent-기초/01-에이전트-개념과-react-패턴.md) (prerequisite)
-- [agent_executor](../12-에이전트agent-기초/01-에이전트-개념과-react-패턴.md) (prerequisite)
-- [intermediate_steps](../12-에이전트agent-기초/01-에이전트-개념과-react-패턴.md) (prerequisite)
-- [create_react_agent_usage](../12-에이전트agent-기초/02-create-react-agent로-에이전트-구축.md) (prerequisite)
-- [react_prompt_variables](../12-에이전트agent-기초/02-create-react-agent로-에이전트-구축.md) (prerequisite)
+- [agent](./01-에이전트-개념과-react-패턴.md) (prerequisite)
+- [react_pattern](./01-에이전트-개념과-react-패턴.md) (prerequisite)
+- [agent_executor](./01-에이전트-개념과-react-패턴.md) (prerequisite)
+- [intermediate_steps](./01-에이전트-개념과-react-패턴.md) (prerequisite)
+- [create_react_agent_usage](./02-create-react-agent로-에이전트-구축.md) (prerequisite)
+- [react_prompt_variables](./02-create-react-agent로-에이전트-구축.md) (prerequisite)

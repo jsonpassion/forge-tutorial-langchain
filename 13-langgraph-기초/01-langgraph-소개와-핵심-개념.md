@@ -440,8 +440,8 @@ LangGraph는 특히 **유한 상태 머신(Finite State Machine)** 의 개념을
 
 ---
 ### 🔗 Related Sessions
-- [lcel](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [runnable](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [chain](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [tool](../11-도구tools와-함수-호출/01-도구-정의와-바인딩.md) (prerequisite)
-- [agent](../12-에이전트agent-기초/01-에이전트-개념과-react-패턴.md) (prerequisite)
+- [lcel](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [runnable](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [chain](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [tool](11-도구tools와-함수-호출/01-도구-정의와-바인딩.md) (prerequisite)
+- [agent](12-에이전트agent-기초/01-에이전트-개념과-react-패턴.md) (prerequisite)

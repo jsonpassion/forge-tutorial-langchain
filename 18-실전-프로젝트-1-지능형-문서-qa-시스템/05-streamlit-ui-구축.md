@@ -7,10 +7,10 @@
 이 섹션에서는 앞서 구축한 문서 QA 백엔드를 실제 사용자가 조작할 수 있는 웹 인터페이스로 완성합니다. Streamlit의 채팅 전용 위젯(`st.chat_message`, `st.chat_input`)과 `st.session_state` 기반 상태 관리를 결합하여, 백엔드 로직 한 줄 수정 없이 프레젠테이션 레이어만 얹는 과정을 다룹니다.
 
 **선수 지식**:
-- [18.1 프로젝트 설계와 아키텍처](ch18/session1.md)의 4-계층 아키텍처 개념
-- [18.2 문서 수집과 인덱싱 파이프라인](ch18/session2.md)의 `IngestionPipeline`
-- [18.3 검색과 생성 파이프라인](ch18/session3.md)의 `QAPipeline`과 `CitedAnswer`
-- [18.4 대화 관리와 메모리](ch18/session4.md)의 `ConversationalQA`와 `SessionManager`
+- [18.1 프로젝트 설계와 아키텍처](./01-프로젝트-설계와-아키텍처.md)의 4-계층 아키텍처 개념
+- [18.2 문서 수집과 인덱싱 파이프라인](./02-문서-수집과-인덱싱-파이프라인.md)의 `IngestionPipeline`
+- [18.3 검색과 생성 파이프라인](./03-검색과-생성-파이프라인.md)의 `QAPipeline`과 `CitedAnswer`
+- [18.4 대화 관리와 메모리](./04-대화-관리와-메모리.md)의 `ConversationalQA`와 `SessionManager`
 
 **학습 목표**:
 - `st.chat_message`와 `st.chat_input`으로 자연스러운 채팅 인터페이스를 구현할 수 있다
@@ -842,7 +842,7 @@ ML 데모 앱 프레임워크로 Gradio도 인기가 높습니다. 두 프레임
 
 ## 다음 섹션 미리보기
 
-다음 [18.6 테스트, 배포, 운영](ch18/session6.md)에서는 지금까지 완성한 문서 QA 시스템을 **프로덕션 환경에 배포**합니다. pytest를 활용한 RAG 파이프라인 테스트, Docker 컨테이너화, Streamlit Cloud 및 클라우드 환경(AWS/GCP) 배포, 그리고 LangSmith를 활용한 운영 모니터링까지 다룹니다. UI가 완성된 지금, 실제 사용자에게 서비스하기 위한 마지막 단계입니다.
+다음 [18.6 테스트, 배포, 운영](./06-테스트와-배포.md)에서는 지금까지 완성한 문서 QA 시스템을 **프로덕션 환경에 배포**합니다. pytest를 활용한 RAG 파이프라인 테스트, Docker 컨테이너화, Streamlit Cloud 및 클라우드 환경(AWS/GCP) 배포, 그리고 LangSmith를 활용한 운영 모니터링까지 다룹니다. UI가 완성된 지금, 실제 사용자에게 서비스하기 위한 마지막 단계입니다.
 
 ---
 
@@ -857,10 +857,10 @@ ML 데모 앱 프레임워크로 Gradio도 인기가 높습니다. 두 프레임
 
 ---
 ### 🔗 Related Sessions
-- [faiss](../07-임베딩과-벡터-스토어/03-벡터-스토어-구축---faiss와-chroma.md) (prerequisite)
-- [runnablewithmessagehistory](../10-메모리와-대화-관리/02-runnablewithmessagehistory.md) (prerequisite)
-- [ingestionpipeline](../18-실전-프로젝트-1-지능형-문서-qa-시스템/02-문서-수집과-인덱싱-파이프라인.md) (prerequisite)
-- [qapipeline](../18-실전-프로젝트-1-지능형-문서-qa-시스템/03-검색과-생성-파이프라인.md) (prerequisite)
-- [conversationalqa](../18-실전-프로젝트-1-지능형-문서-qa-시스템/04-대화-관리와-메모리.md) (prerequisite)
-- [citedanswer](../09-ragretrieval-augmented-generation-구축/02-rag-프롬프트-최적화.md) (prerequisite)
-- [sessionmanager](../10-메모리와-대화-관리/05-멀티턴-대화-시스템-구축.md) (prerequisite)
+- [faiss](07-임베딩과-벡터-스토어/03-벡터-스토어-구축---faiss와-chroma.md) (prerequisite)
+- [runnablewithmessagehistory](10-메모리와-대화-관리/02-runnablewithmessagehistory.md) (prerequisite)
+- [ingestionpipeline](./02-문서-수집과-인덱싱-파이프라인.md) (prerequisite)
+- [qapipeline](./03-검색과-생성-파이프라인.md) (prerequisite)
+- [conversationalqa](./04-대화-관리와-메모리.md) (prerequisite)
+- [citedanswer](09-ragretrieval-augmented-generation-구축/02-rag-프롬프트-최적화.md) (prerequisite)
+- [sessionmanager](10-메모리와-대화-관리/05-멀티턴-대화-시스템-구축.md) (prerequisite)

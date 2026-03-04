@@ -4,7 +4,7 @@
 
 ## 개요
 
-이 섹션에서는 앞서 [세션 4.1: 출력 파서 기초](ch04/session_4_1.md)에서 배운 JsonOutputParser를 한 단계 발전시켜, **Pydantic 모델 기반의 타입 검증 출력 파싱**을 다룹니다. 단순히 JSON 형태로 파싱하는 것을 넘어, Python의 강력한 데이터 검증 라이브러리인 Pydantic을 활용하여 LLM의 출력이 우리가 정의한 스키마에 정확히 부합하는지 자동으로 검증하고, 중첩된 객체나 리스트도 안전하게 파싱하는 방법을 배웁니다.
+이 섹션에서는 앞서 [세션 4.1: 출력 파서 기초](./01-출력-파서-기초.md)에서 배운 JsonOutputParser를 한 단계 발전시켜, **Pydantic 모델 기반의 타입 검증 출력 파싱**을 다룹니다. 단순히 JSON 형태로 파싱하는 것을 넘어, Python의 강력한 데이터 검증 라이브러리인 Pydantic을 활용하여 LLM의 출력이 우리가 정의한 스키마에 정확히 부합하는지 자동으로 검증하고, 중첩된 객체나 리스트도 안전하게 파싱하는 방법을 배웁니다.
 
 **선수 지식**: 세션 4.1에서 배운 OutputParser의 개념, `format_instructions`, `partial_variables`, 그리고 LCEL 파이프 연산자(`|`)를 사용한 체인 구성
 **학습 목표**:
@@ -434,8 +434,8 @@ def _parse_obj(self, obj: dict) -> TBaseModel:
 
 ---
 ### 🔗 Related Sessions
-- [chain](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [output_parser](../04-출력-파서와-구조화된-출력/01-출력-파서-기초.md) (prerequisite)
-- [json_output_parser](../04-출력-파서와-구조화된-출력/01-출력-파서-기초.md) (prerequisite)
-- [format_instructions](../04-출력-파서와-구조화된-출력/01-출력-파서-기초.md) (prerequisite)
-- [partial_variables](../03-프롬프트-엔지니어링과-템플릿/01-chatprompttemplate-기초.md) (prerequisite)
+- [chain](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [output_parser](./01-출력-파서-기초.md) (prerequisite)
+- [json_output_parser](./01-출력-파서-기초.md) (prerequisite)
+- [format_instructions](./01-출력-파서-기초.md) (prerequisite)
+- [partial_variables](03-프롬프트-엔지니어링과-템플릿/01-chatprompttemplate-기초.md) (prerequisite)

@@ -6,7 +6,7 @@
 
 이 섹션에서는 LangGraph가 제공하는 Human-in-the-Loop(HITL) 패턴을 학습합니다. AI 에이전트가 자율적으로 작업을 수행하다가 특정 시점에서 멈추고, 사람의 승인이나 입력을 받은 뒤 다시 실행을 이어가는 워크플로우를 구축하는 방법을 다룹니다.
 
-**선수 지식**: [Ch13: LangGraph 기초](ch13)에서 배운 `StateGraph`, 노드(Node), 엣지(Edge)의 개념과 기본적인 그래프 구성 방법
+**선수 지식**: [Ch13: LangGraph 기초](13-langgraph-기초/01-langgraph-소개와-핵심-개념.md)에서 배운 `StateGraph`, 노드(Node), 엣지(Edge)의 개념과 기본적인 그래프 구성 방법
 **학습 목표**:
 - `interrupt()` 함수로 그래프 실행을 일시 중단하고 외부 입력을 받을 수 있다
 - `Command(resume=...)` 를 사용하여 중단된 그래프를 재개할 수 있다
@@ -418,6 +418,6 @@ LangGraph를 만든 Harrison Chase와 LangChain 팀은 2024년 초 LangGraph를 
 
 ---
 ### 🔗 Related Sessions
-- [node](../01-langchain-소개와-개발-환경-설정/05-langchain-생태계-탐색.md) (prerequisite)
-- [edge](../01-langchain-소개와-개발-환경-설정/05-langchain-생태계-탐색.md) (prerequisite)
-- [checkpointer](../14-langgraph-고급-패턴/02-체크포인팅과-상태-영속성.md) (prerequisite)
+- [node](01-langchain-소개와-개발-환경-설정/05-langchain-생태계-탐색.md) (prerequisite)
+- [edge](01-langchain-소개와-개발-환경-설정/05-langchain-생태계-탐색.md) (prerequisite)
+- [checkpointer](./02-체크포인팅과-상태-영속성.md) (prerequisite)
