@@ -4,9 +4,9 @@
 
 ## 개요
 
-이 섹션에서는 LangChain의 `RunnableWithMessageHistory`를 학습합니다. 앞서 [세션 10.1: 메시지 히스토리 기초](./01-메시지-히스토리-기초.md)에서 `InMemoryChatMessageHistory`로 메시지를 수동으로 추가하고 조회하는 방법을 배웠는데요, 이번에는 그 히스토리를 **LCEL 체인에 자동으로 연결**하는 방법을 다룹니다.
+이 섹션에서는 LangChain의 `RunnableWithMessageHistory`를 학습합니다. 앞서 [세션 10.1: 메시지 히스토리 기초](ch10/session_10_1.md)에서 `InMemoryChatMessageHistory`로 메시지를 수동으로 추가하고 조회하는 방법을 배웠는데요, 이번에는 그 히스토리를 **LCEL 체인에 자동으로 연결**하는 방법을 다룹니다.
 
-**선수 지식**: 세션 10.1의 `BaseChatMessageHistory`, `InMemoryChatMessageHistory`, `session_id` 패턴, 그리고 [챕터 5](05-lcellangchain-expression-language-마스터/01-lcel-기초와-파이프-연산자.md)에서 배운 LCEL 파이프 연산자(`|`)와 `Runnable` 인터페이스
+**선수 지식**: 세션 10.1의 `BaseChatMessageHistory`, `InMemoryChatMessageHistory`, `session_id` 패턴, 그리고 [챕터 5](ch05/)에서 배운 LCEL 파이프 연산자(`|`)와 `Runnable` 인터페이스
 
 **학습 목표**:
 - `RunnableWithMessageHistory`의 동작 원리(Load → Run → Save 패턴)를 이해한다
@@ -15,6 +15,20 @@
 - `ConfigurableFieldSpec`을 활용한 커스텀 설정 패턴을 이해한다
 
 ## 왜 알아야 할까?
+
+> 📊 **그림 1**: RunnableWithMessageHistory의 전체 동작 개요
+
+```mermaid
+flowchart LR
+    U["사용자 요청<br/>+ session_id"] --> RH["RunnableWithMessageHistory"]
+    RH --> L["1. Load<br/>히스토리 불러오기"]
+    L --> R["2. Run<br/>체인 실행"]
+    R --> S["3. Save<br/>새 메시지 저장"]
+    S --> RESP["응답 반환"]
+    DB[("히스토리 저장소")] <-.-> L
+    DB <-.-> S
+```
+
 
 세션 10.1에서 우리는 히스토리 객체에 메시지를 직접 추가하고, 체인을 호출할 때마다 히스토리를 수동으로 꺼내 프롬프트에 넣어야 했습니다. 대화가 한두 번이라면 괜찮지만, 실제 챗봇은 어떨까요?
 
@@ -33,6 +47,27 @@
 > 💡 **비유**: 회의실에 자동 비서가 있다고 상상해보세요. 회의 참석자(session_id)가 들어오면, 비서는 (1) 그 사람의 이전 회의록을 캐비닛에서 꺼내 테이블 위에 펼쳐놓고 → (2) 회의를 진행한 뒤 → (3) 새로 나온 내용을 기록해서 다시 캐비닛에 넣습니다. 참석자는 회의록 관리를 전혀 신경 쓸 필요가 없죠. `RunnableWithMessageHistory`가 바로 이 자동 비서입니다.
 
 `RunnableWithMessageHistory`는 **Load → Run → Save** 3단계로 동작합니다:
+
+> 📊 **그림 2**: Load → Run → Save 상세 흐름
+
+```mermaid
+sequenceDiagram
+    participant U as 사용자
+    participant RH as RunnableWith<br/>MessageHistory
+    participant Store as 히스토리 저장소
+    participant Chain as LCEL 체인
+
+    U->>RH: invoke(input, config)
+    Note over RH: session_id 추출
+    RH->>Store: get_session_history(session_id)
+    Store-->>RH: 과거 메시지 목록
+    Note over RH: 히스토리를 프롬프트에 주입
+    RH->>Chain: 완성된 프롬프트로 실행
+    Chain-->>RH: AI 응답
+    RH->>Store: 입력 + 응답 메시지 저장
+    RH-->>U: 응답 반환
+```
+
 
 1. **Load(불러오기)**: `session_id`로 해당 세션의 히스토리를 조회하여, 프롬프트의 `MessagesPlaceholder` 위치에 주입합니다
 2. **Run(실행)**: 히스토리가 포함된 완전한 프롬프트로 래핑된 체인(LLM 등)을 실행합니다
@@ -95,6 +130,31 @@ print(response.content)
 
 입력/출력 형태에 따라 필요한 키가 달라집니다:
 
+> 📊 **그림 3**: 세 가지 핵심 키 파라미터의 매핑 관계
+
+```mermaid
+flowchart TD
+    subgraph INPUT ["입력"]
+        I1["input_messages_key<br/>'input'"]
+    end
+    subgraph PROMPT ["프롬프트 템플릿"]
+        SYS["system 메시지"]
+        HIS["history_messages_key<br/>MessagesPlaceholder"]
+        HUM["human 메시지"]
+    end
+    subgraph OUTPUT ["출력"]
+        O1["output_messages_key<br/>'answer'"]
+    end
+    I1 -->|"사용자 메시지"| HUM
+    STORE[("히스토리 저장소")] -->|"과거 대화"| HIS
+    SYS --> LLM["LLM 실행"]
+    HIS --> LLM
+    HUM --> LLM
+    LLM --> O1
+    O1 -.->|"새 메시지 저장"| STORE
+```
+
+
 ```python
 # 패턴 1: 딕셔너리 입력 + 히스토리 별도 키
 # → input_messages_key와 history_messages_key 모두 지정
@@ -132,6 +192,19 @@ with_history_dict_output = RunnableWithMessageHistory(
 > 💡 **비유**: 병원의 접수 시스템을 떠올려보세요. 환자 번호(session_id)만 대면, 접수 직원이 알아서 그 환자의 차트(히스토리)를 꺼내옵니다. 다른 환자의 차트와 절대 섞이지 않죠.
 
 하나의 `RunnableWithMessageHistory` 인스턴스로 여러 사용자의 대화를 동시에 관리할 수 있습니다:
+
+> 📊 **그림 4**: session_id 기반 멀티 세션 격리
+
+```mermaid
+flowchart TD
+    RH["RunnableWithMessageHistory<br/>(단일 인스턴스)"] --> CHECK{"session_id 확인"}
+    CHECK -->|"user_A"| HA[("user_A 히스토리<br/>메시지 4개")]
+    CHECK -->|"user_B"| HB[("user_B 히스토리<br/>메시지 2개")]
+    CHECK -->|"user_C"| HC[("user_C 히스토리<br/>메시지 0개")]
+    HA -.->|"완전 격리"| HB
+    HB -.->|"완전 격리"| HC
+```
+
 
 ```python
 # 사용자 A의 대화
@@ -401,7 +474,7 @@ LangChain 창립자 해리슨 체이스(Harrison Chase)와 팀은 2023년 말~20
 
 ## 다음 섹션 미리보기
 
-이번 섹션에서는 인메모리(`InMemoryChatMessageHistory`) 기반의 히스토리 관리를 다뤘는데요, 서버가 재시작되면 모든 대화가 사라진다는 치명적인 한계가 있습니다. 다음 섹션 **[세션 10.3: 영구 메모리 저장소](./03-영구-메시지-저장소.md)**에서는 Redis, SQLite, PostgreSQL 등 **영구 저장소**에 대화 히스토리를 저장하고 복원하는 방법을 학습합니다. `get_session_history` 함수만 교체하면 된다는 이번 섹션의 설계가 어떻게 빛을 발하는지 직접 확인해보세요.
+이번 섹션에서는 인메모리(`InMemoryChatMessageHistory`) 기반의 히스토리 관리를 다뤘는데요, 서버가 재시작되면 모든 대화가 사라진다는 치명적인 한계가 있습니다. 다음 섹션 **[세션 10.3: 영구 메모리 저장소](ch10/session_10_3.md)**에서는 Redis, SQLite, PostgreSQL 등 **영구 저장소**에 대화 히스토리를 저장하고 복원하는 방법을 학습합니다. `get_session_history` 함수만 교체하면 된다는 이번 섹션의 설계가 어떻게 빛을 발하는지 직접 확인해보세요.
 
 ## 참고 자료
 
@@ -412,11 +485,11 @@ LangChain 창립자 해리슨 체이스(Harrison Chase)와 팀은 2023년 말~20
 
 ---
 ### 🔗 Related Sessions
-- [lcel](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [runnable](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [chatprompttemplate](01-langchain-소개와-개발-환경-설정/04-첫-번째-langchain-애플리케이션.md) (prerequisite)
-- [messagesplaceholder](03-프롬프트-엔지니어링과-템플릿/02-고급-프롬프트-패턴.md) (prerequisite)
-- [basechatmessagehistory](./01-메시지-히스토리-기초.md) (prerequisite)
-- [inmemorychatmessagehistory](./01-메시지-히스토리-기초.md) (prerequisite)
-- [session_id_pattern](./01-메시지-히스토리-기초.md) (prerequisite)
-- [get_session_history](09-ragretrieval-augmented-generation-구축/03-대화형-rag.md) (prerequisite)
+- [lcel](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [runnable](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [chatprompttemplate](../01-langchain-소개와-개발-환경-설정/04-첫-번째-langchain-애플리케이션.md) (prerequisite)
+- [messagesplaceholder](../03-프롬프트-엔지니어링과-템플릿/02-고급-프롬프트-패턴.md) (prerequisite)
+- [basechatmessagehistory](../10-메모리와-대화-관리/01-메시지-히스토리-기초.md) (prerequisite)
+- [inmemorychatmessagehistory](../10-메모리와-대화-관리/01-메시지-히스토리-기초.md) (prerequisite)
+- [session_id_pattern](../10-메모리와-대화-관리/01-메시지-히스토리-기초.md) (prerequisite)
+- [get_session_history](../09-ragretrieval-augmented-generation-구축/03-대화형-rag.md) (prerequisite)

@@ -29,6 +29,22 @@ prompt = f"당신은 {role}입니다. {language}로 다음을 번역하세요: {
 
 ### 개념 1: 메시지의 세 가지 역할 — 연극의 대본처럼
 
+> 📊 **그림 1**: Chat 모델의 세 가지 메시지 역할
+
+```mermaid
+graph TD
+    M["메시지 리스트"] --> S["SystemMessage<br/>AI의 페르소나와 규칙 설정"]
+    M --> H["HumanMessage<br/>사용자의 질문과 지시"]
+    M --> A["AIMessage<br/>AI의 이전 응답"]
+    S -->|연극 비유| S1["연출 노트<br/>'까칠한 셰프로 연기하세요'"]
+    H -->|연극 비유| H1["관객의 대사<br/>'추천 메뉴가 뭔가요?'"]
+    A -->|연극 비유| A1["배우의 대사<br/>'파스타를 추천합니다'"]
+    style S fill:#4a9eff,color:#fff
+    style H fill:#50c878,color:#fff
+    style A fill:#ff8c42,color:#fff
+```
+
+
 > 💡 **비유**: Chat 모델과의 대화를 **연극 대본**이라고 생각해보세요. 연극에는 세 종류의 지시가 있습니다:
 > - **연출 노트(Stage Direction)** = `SystemMessage`: "이 캐릭터는 까칠한 셰프입니다"
 > - **배우의 대사** = `HumanMessage`: 관객(사용자)이 던지는 질문
@@ -90,6 +106,21 @@ prompt = ChatPromptTemplate([
 
 ### 개념 3: 변수 바인딩과 invoke() — 빈칸 채우기
 
+> 📊 **그림 2**: ChatPromptTemplate의 변수 바인딩 흐름
+
+```mermaid
+flowchart LR
+    T["ChatPromptTemplate<br/>템플릿 정의"] --> I["invoke()"]
+    V["변수 딕셔너리<br/>specialty, target_lang, text"] --> I
+    I --> CPV["ChatPromptValue"]
+    CPV --> SM["SystemMessage<br/>'당신은 의학 전문 번역가입니다'"]
+    CPV --> HM["HumanMessage<br/>'다음을 영어로 번역하세요: ...'"]
+    style T fill:#6c5ce7,color:#fff
+    style V fill:#00b894,color:#fff
+    style CPV fill:#fdcb6e,color:#333
+```
+
+
 > 💡 **비유**: 템플릿에 변수를 넣는 것은 **자판기에 동전을 넣는 것**과 같습니다. 올바른 동전(변수)을 모두 넣어야 음료(포맷팅된 프롬프트)가 나옵니다. 동전이 부족하면? 에러가 발생하죠.
 
 템플릿을 만들었으면 `invoke()` 메서드로 변수에 실제 값을 전달합니다:
@@ -136,6 +167,20 @@ print(messages[0].content)  # '당신은 법률 전문 번역가입니다.'
 
 ### 개념 4: LCEL 체인과의 연결 — 파이프라인 완성
 
+> 📊 **그림 3**: LCEL 파이프라인 — 프롬프트에서 최종 응답까지
+
+```mermaid
+flowchart LR
+    INPUT["입력 딕셔너리<br/>topic: '양자 컴퓨팅'"] --> P["ChatPromptTemplate<br/>프롬프트 포맷팅"]
+    P -->|"파이프 (|)"| MODEL["ChatOpenAI<br/>LLM 호출"]
+    MODEL -->|"파이프 (|)"| PARSER["StrOutputParser<br/>문자열 추출"]
+    PARSER --> OUT["최종 응답<br/>'양자 컴퓨팅은...'"]
+    style P fill:#6c5ce7,color:#fff
+    style MODEL fill:#e17055,color:#fff
+    style PARSER fill:#00b894,color:#fff
+```
+
+
 > 💡 **비유**: LCEL의 파이프 연산자(`|`)는 **공장의 컨베이어 벨트**입니다. 프롬프트 템플릿이 원재료를 준비하면, 벨트를 타고 모델로 이동하고, 파서가 최종 제품을 포장합니다.
 
 `ChatPromptTemplate`은 [Session 1.1]에서 배운 `Runnable` 인터페이스를 구현합니다. 덕분에 LCEL 파이프 연산자로 모델, 파서와 자연스럽게 연결할 수 있죠:
@@ -167,6 +212,20 @@ print(response)
 이 패턴이 LangChain 개발의 가장 기본적인 빌딩 블록입니다. 앞으로 배울 모든 고급 기능(RAG, 에이전트 등)도 결국 이 `프롬프트 → 모델 → 파서` 구조 위에 쌓아올리게 됩니다.
 
 ### 개념 5: partial()로 변수 미리 채우기
+
+> 📊 **그림 4**: partial()로 전문가별 템플릿 분기
+
+```mermaid
+flowchart TD
+    BASE["기본 템플릿<br/>변수: name, role, question"] -->|"partial(name='민수쌤', role='한국어 선생님')"| KOR["한국어 튜터 템플릿<br/>남은 변수: question"]
+    BASE -->|"partial(name='코드박사', role='프로그래밍 멘토')"| DEV["개발 멘토 템플릿<br/>남은 변수: question"]
+    KOR -->|"invoke(question='...')"| R1["완성된 프롬프트 A"]
+    DEV -->|"invoke(question='...')"| R2["완성된 프롬프트 B"]
+    style BASE fill:#6c5ce7,color:#fff
+    style KOR fill:#00b894,color:#fff
+    style DEV fill:#e17055,color:#fff
+```
+
 
 때로는 템플릿의 일부 변수만 미리 채워두고, 나머지는 나중에 채우고 싶을 때가 있습니다. `partial()` 메서드가 바로 이 용도입니다:
 
@@ -330,8 +389,8 @@ OpenAI의 Chat API 설계에서 `system` 역할이 도입된 이유는 흥미롭
 
 ---
 ### 🔗 Related Sessions
-- [lcel](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [runnable](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [chatopenai](01-langchain-소개와-개발-환경-설정/04-첫-번째-langchain-애플리케이션.md) (prerequisite)
-- [invoke](01-langchain-소개와-개발-환경-설정/04-첫-번째-langchain-애플리케이션.md) (prerequisite)
-- [stroutputparser](01-langchain-소개와-개발-환경-설정/04-첫-번째-langchain-애플리케이션.md) (prerequisite)
+- [lcel](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [runnable](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [chatopenai](../01-langchain-소개와-개발-환경-설정/04-첫-번째-langchain-애플리케이션.md) (prerequisite)
+- [invoke](../01-langchain-소개와-개발-환경-설정/04-첫-번째-langchain-애플리케이션.md) (prerequisite)
+- [stroutputparser](../01-langchain-소개와-개발-환경-설정/04-첫-번째-langchain-애플리케이션.md) (prerequisite)

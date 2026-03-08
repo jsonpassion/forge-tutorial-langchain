@@ -6,7 +6,7 @@
 
 이 섹션에서는 LangChain의 `ChatOpenAI` 클래스가 제공하는 다양한 모델 파라미터를 깊이 있게 살펴봅니다. 단순히 "모델을 호출한다"를 넘어서, **어떻게 호출하느냐**에 따라 응답의 품질, 창의성, 그리고 비용이 크게 달라진다는 사실을 직접 확인하게 될 거예요.
 
-**선수 지식**: [Ch1: LangChain 소개와 개발 환경 설정](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md)에서 배운 LangChain 설치, `.env` 설정, 그리고 `ChatOpenAI` 기본 사용법
+**선수 지식**: [Ch1: LangChain 소개와 개발 환경 설정](ch01)에서 배운 LangChain 설치, `.env` 설정, 그리고 `ChatOpenAI` 기본 사용법
 **학습 목표**:
 - `temperature`, `top_p`, `frequency_penalty`, `presence_penalty` 파라미터의 원리와 효과를 이해한다
 - `usage_metadata`와 `get_openai_callback`을 사용하여 토큰 사용량을 정확히 추적할 수 있다
@@ -35,6 +35,22 @@ $$P(token_i) = \frac{e^{z_i / T}}{\sum_j e^{z_j / T}}$$
 - $P(token_i)$: 토큰 $i$가 선택될 최종 확률
 
 이게 의미하는 바는 이렇습니다: **temperature가 낮을수록** 확률이 높은 토큰에 집중하여 예측 가능하고 일관된 출력을 만들고, **temperature가 높을수록** 다양한 토큰에 기회를 주어 창의적이지만 때로는 엉뚱한 결과를 생성합니다.
+
+![Temperature 값(1.0, 0.5, 0.1)에 따른 토큰 확률 분포 변화 — 낮을수록 최고 확률 토큰에 집중됨](../images/ch02/1_qAEEn6ylVTMZcSZRsFEqsw-90126e66.png "Decoding Strategies in Large Language Models — Maxime Labonne")
+
+
+> 📊 **그림 1**: Temperature에 따른 토큰 선택 확률 변화
+
+```mermaid
+flowchart LR
+    A["로짓(Logit) 계산"] --> B["Temperature 적용<br/>z / T"]
+    B --> C["소프트맥스(Softmax)"]
+    C --> D{"T 값에 따라"}
+    D -->|"T = 0.0"| E["최고 확률 토큰<br/>거의 항상 선택"]
+    D -->|"T = 0.7"| F["상위 토큰들 중<br/>균형 있게 선택"]
+    D -->|"T = 1.5"| G["다양한 토큰에<br/>고르게 분산"]
+```
+
 
 ```python
 from langchain_openai import ChatOpenAI
@@ -78,6 +94,22 @@ print("🔥 Temperature 1.2:", response_high.content[:100])
 
 `top_p`(nucleus sampling)는 확률이 높은 토큰부터 누적해서 합이 `top_p` 값에 도달할 때까지만 후보로 남기는 방식입니다. 나머지 토큰은 확률이 0으로 처리됩니다.
 
+![Nucleus Sampling: 누적 확률 기준으로 상위 토큰(빨간색)만 선택하고 나머지는 제외](../images/ch02/1_pIvIyaLxQ_b_M7ZaZncY8A-33edf046.gif "Decoding Strategies in Large Language Models — Maxime Labonne")
+
+
+> 📊 **그림 2**: Temperature와 top_p의 토큰 샘플링 파이프라인
+
+```mermaid
+flowchart TD
+    A["어휘 전체 토큰"] --> B["로짓 점수 계산"]
+    B --> C["Temperature 스케일링<br/>확률 분포 조절"]
+    C --> D["소프트맥스 변환<br/>확률로 변환"]
+    D --> E["top_p 필터링<br/>누적 확률 기준 컷오프"]
+    E --> F["후보 토큰 풀"]
+    F --> G["최종 토큰 샘플링"]
+```
+
+
 ```python
 # top_p를 사용한 핵 샘플링
 focused_llm = ChatOpenAI(
@@ -97,6 +129,23 @@ print(response.content[:200])
 ### 개념 3: frequency_penalty와 presence_penalty — 반복의 함정 탈출
 
 > 💡 **비유**: 뷔페에서 음식을 고르는 상황을 떠올려보세요. `frequency_penalty`는 "**이미 많이 먹은 음식일수록 다시 고르기 싫어지는**" 효과이고, `presence_penalty`는 "**한 번이라도 먹어본 음식은 다시 안 고르려는**" 효과입니다. 전자는 빈도에 비례하고, 후자는 등장 여부만 따집니다.
+
+> 📊 **그림 3**: frequency_penalty vs presence_penalty 동작 비교
+
+```mermaid
+flowchart LR
+    subgraph FP["frequency_penalty"]
+        direction TB
+        F1["토큰 A: 3회 등장"] --> F2["패널티 = 0.5 x 3 = 1.5"]
+        F3["토큰 B: 1회 등장"] --> F4["패널티 = 0.5 x 1 = 0.5"]
+    end
+    subgraph PP["presence_penalty"]
+        direction TB
+        P1["토큰 A: 3회 등장"] --> P2["패널티 = 0.3 (고정)"]
+        P3["토큰 B: 1회 등장"] --> P4["패널티 = 0.3 (고정)"]
+    end
+```
+
 
 ```python
 # 반복 방지 파라미터 설정
@@ -176,6 +225,20 @@ with get_openai_callback() as cb:
 ### 개념 5: 비용 최적화 전략
 
 > 💡 **비유**: LLM API 비용 관리는 **휴대폰 요금제 최적화**와 비슷합니다. 비싼 요금제(GPT-4o)가 항상 최선은 아니고, 용도에 따라 적절한 요금제(GPT-4o-mini)를 골라 쓰는 게 핵심이죠.
+
+> 📊 **그림 4**: 쿼리 복잡도 기반 모델 라우팅 전략
+
+```mermaid
+flowchart TD
+    A["사용자 쿼리"] --> B{"복잡도 판단"}
+    B -->|"분류, 추출, 요약, 번역"| C["gpt-4o-mini<br/>$0.15 / 1M tokens"]
+    B -->|"복잡한 추론, 분석"| D["gpt-4o<br/>$2.50 / 1M tokens"]
+    C --> E["비용 절감 94%+"]
+    D --> F["높은 품질 보장"]
+    E --> G["응답 반환"]
+    F --> G
+```
+
 
 **전략 1: 용도별 모델 선택**
 
@@ -352,7 +415,7 @@ for model_name in models:
 
 ## 다음 섹션 미리보기
 
-이번 섹션에서 OpenAI 모델의 파라미터를 세밀하게 다루는 법을 배웠다면, 다음 섹션 **[2.2: 다양한 Chat Model 프로바이더](./02-다중-프로바이더-연동.md)**에서는 Anthropic(Claude), Google(Gemini), 오픈소스 모델 등 **OpenAI 이외의 LLM 프로바이더**를 LangChain에서 연동하는 방법을 알아봅니다. 모델을 하나만 알면 종속되지만, 여러 모델을 다룰 줄 알면 선택지가 생기죠.
+이번 섹션에서 OpenAI 모델의 파라미터를 세밀하게 다루는 법을 배웠다면, 다음 섹션 **[2.2: 다양한 Chat Model 프로바이더](ch02/session2)**에서는 Anthropic(Claude), Google(Gemini), 오픈소스 모델 등 **OpenAI 이외의 LLM 프로바이더**를 LangChain에서 연동하는 방법을 알아봅니다. 모델을 하나만 알면 종속되지만, 여러 모델을 다룰 줄 알면 선택지가 생기죠.
 
 ## 참고 자료
 

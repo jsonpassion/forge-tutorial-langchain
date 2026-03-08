@@ -7,10 +7,10 @@
 이 섹션에서는 앞서 구축한 문서 QA 백엔드를 실제 사용자가 조작할 수 있는 웹 인터페이스로 완성합니다. Streamlit의 채팅 전용 위젯(`st.chat_message`, `st.chat_input`)과 `st.session_state` 기반 상태 관리를 결합하여, 백엔드 로직 한 줄 수정 없이 프레젠테이션 레이어만 얹는 과정을 다룹니다.
 
 **선수 지식**:
-- [18.1 프로젝트 설계와 아키텍처](./01-프로젝트-설계와-아키텍처.md)의 4-계층 아키텍처 개념
-- [18.2 문서 수집과 인덱싱 파이프라인](./02-문서-수집과-인덱싱-파이프라인.md)의 `IngestionPipeline`
-- [18.3 검색과 생성 파이프라인](./03-검색과-생성-파이프라인.md)의 `QAPipeline`과 `CitedAnswer`
-- [18.4 대화 관리와 메모리](./04-대화-관리와-메모리.md)의 `ConversationalQA`와 `SessionManager`
+- [18.1 프로젝트 설계와 아키텍처](ch18/session1.md)의 4-계층 아키텍처 개념
+- [18.2 문서 수집과 인덱싱 파이프라인](ch18/session2.md)의 `IngestionPipeline`
+- [18.3 검색과 생성 파이프라인](ch18/session3.md)의 `QAPipeline`과 `CitedAnswer`
+- [18.4 대화 관리와 메모리](ch18/session4.md)의 `ConversationalQA`와 `SessionManager`
 
 **학습 목표**:
 - `st.chat_message`와 `st.chat_input`으로 자연스러운 채팅 인터페이스를 구현할 수 있다
@@ -21,6 +21,35 @@
 ---
 
 ## 왜 알아야 할까?
+
+> 📊 **그림 2**: 문서 QA 앱의 전체 UI 레이아웃 구조
+
+```mermaid
+graph TD
+    subgraph SIDEBAR["사이드바"]
+        S1["문서 업로드<br/>st.file_uploader"]
+        S2["세션 관리<br/>새 대화 시작"]
+        S3["소스 인용 표시<br/>st.expander"]
+        S4["대화 내보내기<br/>JSON / CSV"]
+    end
+    subgraph MAIN["메인 영역"]
+        M1["제목 / 설명"]
+        M2["대화 히스토리<br/>st.chat_message"]
+        M3["채팅 입력<br/>st.chat_input"]
+    end
+    subgraph BACKEND["백엔드 (캐싱)"]
+        B1["ConversationalQA"]
+        B2["IngestionPipeline"]
+        B3["FAISS 벡터 스토어"]
+    end
+    S1 --> B2
+    B2 --> B3
+    M3 --> B1
+    B1 --> B3
+    B1 --> M2
+    B1 --> S3
+```
+
 
 아무리 정교한 RAG 파이프라인을 만들어도, 사용자가 터미널에서 Python 스크립트를 실행해야 한다면 실무에서 쓰이기 어렵습니다. "좋은 백엔드 + 나쁜 UI = 아무도 안 쓰는 도구"라는 말이 있을 정도인데요. Streamlit은 **Python만으로** 인터랙티브 웹 앱을 만들 수 있어, 프론트엔드 경험이 없는 ML/데이터 엔지니어도 몇 시간 안에 프로토타입을 배포할 수 있습니다.
 
@@ -35,6 +64,22 @@
 > 💡 **비유**: Streamlit의 실행 모델은 **칠판 수업**과 비슷합니다. 학생이 질문(사용자 인터랙션)할 때마다 선생님이 칠판을 깨끗이 지우고 처음부터 다시 그리되, **수첩(`st.session_state`)에 적어둔 메모**는 유지합니다. 칠판은 매번 새로 그리지만, 수첩 덕분에 이전 대화 맥락을 잃지 않는 거죠.
 
 Streamlit은 사용자가 버튼을 누르거나 입력을 보낼 때마다 **스크립트 전체를 위에서 아래로 다시 실행**합니다. 일반적인 웹 프레임워크(Flask, Django)와 달리 라우팅이나 콜백 함수를 등록하는 방식이 아닙니다. 이 "재실행 모델" 덕분에 코드가 선언적이고 단순하지만, **상태를 보존하려면 반드시 `st.session_state`를 사용**해야 합니다.
+
+> 📊 **그림 1**: Streamlit의 재실행 모델 — 스크립트는 매번 다시 실행되지만, session_state는 유지됩니다
+
+```mermaid
+flowchart TD
+    A["사용자 인터랙션<br/>버튼 클릭, 입력 전송"] --> B["스크립트 전체 재실행<br/>위에서 아래로"]
+    B --> C{"session_state<br/>키 존재?"}
+    C -->|"없음"| D["초기값 설정"]
+    C -->|"있음"| E["기존 값 유지"]
+    D --> F["위젯 렌더링"]
+    E --> F
+    F --> G["화면 출력"]
+    G -->|"다음 인터랙션"| A
+    style C fill:#f9f,stroke:#333
+```
+
 
 ```python
 import streamlit as st
@@ -95,6 +140,29 @@ if prompt := st.chat_input("문서에 대해 질문하세요..."):
 
 핵심 패턴은 세 단계입니다:
 
+> 📊 **그림 3**: 채팅 메시지의 처리 흐름 — 히스토리 재생부터 응답 저장까지
+
+```mermaid
+sequenceDiagram
+    participant U as 사용자
+    participant ST as Streamlit UI
+    participant SS as session_state
+    participant QA as ConversationalQA
+    
+    Note over ST: 스크립트 재실행 시작
+    ST->>SS: 저장된 messages 조회
+    SS-->>ST: 대화 히스토리
+    ST->>ST: chat_message로 히스토리 재생
+    U->>ST: chat_input에 질문 입력
+    ST->>SS: 사용자 메시지 저장
+    ST->>QA: ask(question, session_id)
+    QA-->>ST: answer + sources
+    ST->>ST: chat_message로 답변 표시
+    ST->>SS: 어시스턴트 메시지 저장
+    ST->>ST: 사이드바 소스 갱신
+```
+
+
 1. **히스토리 재생**: `for msg in st.session_state.messages` — 재실행 시 이전 대화를 다시 그립니다
 2. **사용자 입력 처리**: `st.chat_input` — 왈러스 연산자(`:=`)로 입력 존재 여부를 체크합니다
 3. **응답 생성 & 저장**: 백엔드 호출 후 결과를 `st.session_state`에 추가합니다
@@ -102,6 +170,22 @@ if prompt := st.chat_input("문서에 대해 질문하세요..."):
 ---
 
 ### 개념 3: 문서 업로드와 실시간 인덱싱
+
+> 📊 **그림 4**: 문서 업로드에서 벡터 인덱스까지의 처리 파이프라인
+
+```mermaid
+flowchart LR
+    A["파일 업로드<br/>st.file_uploader"] --> B["임시 디렉토리<br/>저장"]
+    B --> C["문서 로더 선택<br/>PDF/DOCX/TXT/HTML"]
+    C --> D["텍스트 추출<br/>+ 메타데이터"]
+    D --> E["청킹<br/>RecursiveTextSplitter"]
+    E --> F{"벡터 스토어<br/>존재?"}
+    F -->|"없음"| G["FAISS.from_documents<br/>새로 생성"]
+    F -->|"있음"| H["add_documents<br/>기존에 추가"]
+    G --> I["save_local<br/>인덱스 영속화"]
+    H --> I
+```
+
 
 > 💡 **비유**: 도서관에 새 책을 기증하는 과정을 떠올려 보세요. 책을 접수 창구(`st.file_uploader`)에 맡기면, 사서가 분류·라벨링(청킹+메타데이터)을 거쳐 서가에 꽂아 놓습니다(벡터 인덱스). 그 다음부터 바로 검색이 가능해지죠.
 
@@ -842,7 +926,7 @@ ML 데모 앱 프레임워크로 Gradio도 인기가 높습니다. 두 프레임
 
 ## 다음 섹션 미리보기
 
-다음 [18.6 테스트, 배포, 운영](./06-테스트와-배포.md)에서는 지금까지 완성한 문서 QA 시스템을 **프로덕션 환경에 배포**합니다. pytest를 활용한 RAG 파이프라인 테스트, Docker 컨테이너화, Streamlit Cloud 및 클라우드 환경(AWS/GCP) 배포, 그리고 LangSmith를 활용한 운영 모니터링까지 다룹니다. UI가 완성된 지금, 실제 사용자에게 서비스하기 위한 마지막 단계입니다.
+다음 [18.6 테스트, 배포, 운영](ch18/session6.md)에서는 지금까지 완성한 문서 QA 시스템을 **프로덕션 환경에 배포**합니다. pytest를 활용한 RAG 파이프라인 테스트, Docker 컨테이너화, Streamlit Cloud 및 클라우드 환경(AWS/GCP) 배포, 그리고 LangSmith를 활용한 운영 모니터링까지 다룹니다. UI가 완성된 지금, 실제 사용자에게 서비스하기 위한 마지막 단계입니다.
 
 ---
 
@@ -857,10 +941,10 @@ ML 데모 앱 프레임워크로 Gradio도 인기가 높습니다. 두 프레임
 
 ---
 ### 🔗 Related Sessions
-- [faiss](07-임베딩과-벡터-스토어/03-벡터-스토어-구축---faiss와-chroma.md) (prerequisite)
-- [runnablewithmessagehistory](10-메모리와-대화-관리/02-runnablewithmessagehistory.md) (prerequisite)
-- [ingestionpipeline](./02-문서-수집과-인덱싱-파이프라인.md) (prerequisite)
-- [qapipeline](./03-검색과-생성-파이프라인.md) (prerequisite)
-- [conversationalqa](./04-대화-관리와-메모리.md) (prerequisite)
-- [citedanswer](09-ragretrieval-augmented-generation-구축/02-rag-프롬프트-최적화.md) (prerequisite)
-- [sessionmanager](10-메모리와-대화-관리/05-멀티턴-대화-시스템-구축.md) (prerequisite)
+- [faiss](../07-임베딩과-벡터-스토어/03-벡터-스토어-구축---faiss와-chroma.md) (prerequisite)
+- [runnablewithmessagehistory](../10-메모리와-대화-관리/02-runnablewithmessagehistory.md) (prerequisite)
+- [ingestionpipeline](../18-실전-프로젝트-1-지능형-문서-qa-시스템/02-문서-수집과-인덱싱-파이프라인.md) (prerequisite)
+- [qapipeline](../18-실전-프로젝트-1-지능형-문서-qa-시스템/03-검색과-생성-파이프라인.md) (prerequisite)
+- [conversationalqa](../18-실전-프로젝트-1-지능형-문서-qa-시스템/04-대화-관리와-메모리.md) (prerequisite)
+- [citedanswer](../09-ragretrieval-augmented-generation-구축/02-rag-프롬프트-최적화.md) (prerequisite)
+- [sessionmanager](../10-메모리와-대화-관리/05-멀티턴-대화-시스템-구축.md) (prerequisite)

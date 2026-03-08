@@ -4,9 +4,9 @@
 
 ## 개요
 
-이 섹션에서는 LCEL 체인의 데이터 흐름을 정밀하게 제어하는 핵심 Runnable 컴포넌트들을 학습합니다. [5.1 LCEL 기초와 파이프 연산자](./01-lcel-기초와-파이프-연산자.md)에서 배운 파이프 연산자(`|`)와 Runnable 프로토콜을 기반으로, 이제 데이터를 통과시키고, 분기하고, 변환하는 방법을 익힙니다.
+이 섹션에서는 LCEL 체인의 데이터 흐름을 정밀하게 제어하는 핵심 Runnable 컴포넌트들을 학습합니다. [5.1 LCEL 기초와 파이프 연산자](ch05/session_01.md)에서 배운 파이프 연산자(`|`)와 Runnable 프로토콜을 기반으로, 이제 데이터를 통과시키고, 분기하고, 변환하는 방법을 익힙니다.
 
-**선수 지식**: Runnable 프로토콜과 파이프 연산자(`|`)의 기본 동작 원리, `invoke`/`stream`/`batch` 메서드 사용법 ([5.1 LCEL 기초와 파이프 연산자](./01-lcel-기초와-파이프-연산자.md))
+**선수 지식**: Runnable 프로토콜과 파이프 연산자(`|`)의 기본 동작 원리, `invoke`/`stream`/`batch` 메서드 사용법 ([5.1 LCEL 기초와 파이프 연산자](ch05/session_01.md))
 
 **학습 목표**:
 - `RunnablePassthrough`로 입력 데이터를 유지하면서 중간 처리를 수행할 수 있다
@@ -19,6 +19,21 @@
 실제 LLM 애플리케이션을 만들다 보면, 단순한 "프롬프트 → 모델 → 파서" 직선 체인만으로는 부족한 순간이 금방 찾아옵니다. RAG 시스템을 예로 들어볼까요? 사용자 질문을 받으면, 한쪽에서는 벡터 DB를 검색하고, 다른 한쪽에서는 원래 질문을 그대로 유지해서, 두 결과를 합쳐 프롬프트에 넣어야 합니다. 이런 "Y자 분기", "데이터 통과", "중간 변환" 같은 패턴이 없으면 체인이 금세 스파게티 코드가 되어버리거든요.
 
 이번 섹션에서 배울 세 가지 Runnable — `RunnablePassthrough`, `RunnableParallel`, `RunnableLambda` — 은 바로 이 문제를 해결하는 LCEL의 핵심 도구입니다. 이 컴포넌트들을 익히면 어떤 복잡한 데이터 흐름도 선언적으로, 깔끔하게 표현할 수 있습니다.
+
+> 📊 **그림 1**: 핵심 Runnable 컴포넌트 4종과 역할 개관
+
+```mermaid
+flowchart LR
+    Input["입력 데이터"] --> PP["RunnablePassthrough<br/>그대로 통과"]
+    Input --> RPar["RunnableParallel<br/>병렬 분기"]
+    Input --> RL["RunnableLambda<br/>함수 변환"]
+    Input --> IG["itemgetter<br/>키 추출"]
+    PP --> Next["다음 단계"]
+    RPar --> Next
+    RL --> Next
+    IG --> Next
+```
+
 
 ## 핵심 개념
 
@@ -57,11 +72,39 @@ print(result)
 
 핵심은 이겁니다 — `assign()`은 **원래 딕셔너리의 모든 키를 보존**하면서 새 키를 추가합니다. 데이터를 잃어버리지 않고 점진적으로 정보를 쌓아가는 패턴이죠.
 
+> 📊 **그림 2**: RunnablePassthrough vs assign() 데이터 흐름 비교
+
+```mermaid
+flowchart TD
+    subgraph A["RunnablePassthrough()"]
+        A1["입력: 'hello'"] --> A2["그대로 통과"] --> A3["출력: 'hello'"]
+    end
+    subgraph B["RunnablePassthrough.assign()"]
+        B1["입력: (text: 'hello')"] --> B2["원본 유지 +<br/>length 계산"] --> B3["출력: (text: 'hello',<br/>length: 5)"]
+    end
+```
+
+
 ### 개념 2: RunnableParallel — 여러 작업을 동시에 실행하기
 
 > 💡 **비유**: 식당 주방을 상상해보세요. 주문이 들어오면 한 셰프는 스테이크를 굽고, 다른 셰프는 샐러드를 만들고, 또 다른 셰프는 수프를 끓입니다. 각각 독립적으로 작업하다가, 다 끝나면 하나의 접시에 담아 내보냅니다. `RunnableParallel`이 바로 이 "동시 조리" 시스템입니다.
 
 `RunnableParallel`은 **같은 입력**을 여러 Runnable에 동시에 전달하고, 각각의 결과를 딕셔너리로 모아줍니다.
+
+> 📊 **그림 3**: RunnableParallel의 팬아웃(Fan-out) 패턴
+
+```mermaid
+flowchart TD
+    Input["입력: 'hello'"] --> RPar{"RunnableParallel"}
+    RPar --> U["upper: 대문자 변환"]
+    RPar --> L["length: 길이 계산"]
+    RPar --> R["reversed: 뒤집기"]
+    U --> Merge["결과 병합"]
+    L --> Merge
+    R --> Merge
+    Merge --> Output["(upper: 'HELLO',<br/>length: 5,<br/>reversed: 'olleh')"]
+```
+
 
 ```python
 from langchain_core.runnables import RunnableParallel, RunnableLambda
@@ -229,6 +272,22 @@ print(result)
 
 이제 네 가지 도구를 모두 조합해봅시다. 실전에서 가장 많이 보이는 패턴인 RAG 스타일 체인의 데이터 흐름을 구성합니다.
 
+> 📊 **그림 4**: RAG 스타일 체인의 전체 데이터 흐름
+
+```mermaid
+flowchart LR
+    Q["사용자 질문"] --> Par{"RunnableParallel"}
+    Par -->|"context"| Ret["RunnableLambda<br/>fake_retriever"]
+    Par -->|"question"| Pass["RunnablePassthrough<br/>질문 보존"]
+    Ret --> Dict["context + question<br/>딕셔너리"]
+    Pass --> Dict
+    Dict --> P["프롬프트<br/>템플릿"]
+    P --> LLM["ChatOpenAI"]
+    LLM --> SP["StrOutputParser"]
+    SP --> A["최종 답변"]
+```
+
+
 ```python
 from operator import itemgetter
 from langchain_core.runnables import (
@@ -289,6 +348,22 @@ print(answer)
 ## 실습: 직접 해보기
 
 이번 실습에서는 여러 관점에서 동시에 분석하는 "다면 분석 체인"을 만들어봅니다. 하나의 텍스트를 입력받아 감정 분석, 키워드 추출, 요약을 동시에 수행하는 체인입니다.
+
+> 📊 **그림 5**: 다면 분석 체인 아키텍처
+
+```mermaid
+flowchart TD
+    Input["원본 텍스트"] --> Pre["RunnableLambda<br/>전처리"]
+    Pre --> Wrap["RunnableLambda<br/>딕셔너리 변환"]
+    Wrap --> Par{"RunnableParallel"}
+    Par --> S["감정 분석 체인<br/>sentiment_chain"]
+    Par --> K["키워드 추출 체인<br/>keyword_chain"]
+    Par --> Sum["요약 체인<br/>summary_chain"]
+    S --> Result["(sentiment: ...,<br/>keywords: ...,<br/>summary: ...)"]
+    K --> Result
+    Sum --> Result
+```
+
 
 ```python
 """
@@ -448,8 +523,8 @@ Harrison Chase가 2022년 10월 LangChain을 처음 공개했을 때, 체인 구
 
 ---
 ### 🔗 Related Sessions
-- [lcel_pipe_operator](./01-lcel-기초와-파이프-연산자.md) (prerequisite)
-- [runnable_protocol](./01-lcel-기초와-파이프-연산자.md) (prerequisite)
-- [runnable_sequence](./01-lcel-기초와-파이프-연산자.md) (prerequisite)
-- [invoke_method](./01-lcel-기초와-파이프-연산자.md) (prerequisite)
-- [batch_method](./01-lcel-기초와-파이프-연산자.md) (prerequisite)
+- [lcel_pipe_operator](../05-lcellangchain-expression-language-마스터/01-lcel-기초와-파이프-연산자.md) (prerequisite)
+- [runnable_protocol](../05-lcellangchain-expression-language-마스터/01-lcel-기초와-파이프-연산자.md) (prerequisite)
+- [runnable_sequence](../05-lcellangchain-expression-language-마스터/01-lcel-기초와-파이프-연산자.md) (prerequisite)
+- [invoke_method](../05-lcellangchain-expression-language-마스터/01-lcel-기초와-파이프-연산자.md) (prerequisite)
+- [batch_method](../05-lcellangchain-expression-language-마스터/01-lcel-기초와-파이프-연산자.md) (prerequisite)

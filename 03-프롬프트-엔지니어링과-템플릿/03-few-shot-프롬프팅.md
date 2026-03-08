@@ -6,7 +6,7 @@
 
 이 섹션에서는 LangChain의 `FewShotChatMessagePromptTemplate`을 사용해 Few-shot 프롬프트를 체계적으로 구성하는 방법을 배웁니다. 고정 예제부터 시작하여, `SemanticSimilarityExampleSelector`로 입력에 맞는 예제를 자동으로 골라주는 동적 선택까지 다룹니다.
 
-**선수 지식**: [Session 3.1: ChatPromptTemplate 기초](./01-chatprompttemplate-기초.md)에서 배운 `ChatPromptTemplate.from_messages()`와 `invoke()`, [Session 3.2: 고급 프롬프트 패턴](./02-고급-프롬프트-패턴.md)에서 배운 `MessagesPlaceholder`
+**선수 지식**: [Session 3.1: ChatPromptTemplate 기초](ch03/session_3_1.md)에서 배운 `ChatPromptTemplate.from_messages()`와 `invoke()`, [Session 3.2: 고급 프롬프트 패턴](ch03/session_3_2.md)에서 배운 `MessagesPlaceholder`
 
 **학습 목표**:
 - `FewShotChatMessagePromptTemplate`으로 Few-shot 프롬프트를 구성할 수 있다
@@ -14,6 +14,23 @@
 - 예제 수(`k`)를 상황에 맞게 조절하는 전략을 세울 수 있다
 
 ## 왜 알아야 할까?
+
+> 📊 **그림 1**: Few-shot 프롬프팅의 전체 흐름 — 고정 예제 vs 동적 선택
+
+```mermaid
+flowchart TD
+    A["사용자 입력"] --> B{"예제 선택 방식"}
+    B -->|고정| C["미리 정의된<br/>예제 리스트"]
+    B -->|동적| D["ExampleSelector"]
+    D --> E["임베딩 유사도 계산"]
+    E --> F["상위 k개 예제 선택"]
+    C --> G["FewShotChatMessage<br/>PromptTemplate"]
+    F --> G
+    G --> H["system + 예제 + 입력<br/>메시지 시퀀스 생성"]
+    H --> I["LLM"]
+    I --> J["응답"]
+```
+
 
 여러분이 후배에게 코드 리뷰를 가르친다고 상상해 보세요. "코드 리뷰 잘 해"라고만 말하면, 후배는 뭘 어떻게 해야 할지 막막하겠죠? 하지만 실제 코드 리뷰 예시 3개를 보여주면 — "아, 이런 식으로 하면 되는구나!" — 금방 패턴을 파악합니다.
 
@@ -31,6 +48,30 @@ LLM도 마찬가지입니다. 단순히 "번역해줘", "요약해줘"라고 지
 ### 개념 1: FewShotChatMessagePromptTemplate — 예제를 체계적으로 관리하기
 
 > 💡 **비유**: 요리 레시피북을 생각해 보세요. "파스타를 만들어줘"라고만 하면 어떤 파스타인지 모르지만, 완성된 요리 사진 3장과 레시피를 보여주면 정확히 원하는 파스타를 만들 수 있습니다. `FewShotChatMessagePromptTemplate`은 이 "레시피 모음집"을 LLM에게 체계적으로 전달하는 도구입니다.
+
+> 📊 **그림 2**: FewShotChatMessagePromptTemplate의 구성 요소
+
+```mermaid
+flowchart LR
+    subgraph 예제데이터["예제 데이터"]
+        E1["input: 안녕하세요<br/>output: Hello"]
+        E2["input: 감사합니다<br/>output: Thank you"]
+    end
+    subgraph 예제프롬프트["예제 프롬프트"]
+        EP["human: '{input}'<br/>ai: '{output}'"]
+    end
+    예제데이터 --> FS["FewShotChat<br/>MessagePrompt<br/>Template"]
+    예제프롬프트 --> FS
+    FS --> MSG["메시지 시퀀스"]
+    subgraph 최종출력["최종 메시지"]
+        M1["human: 안녕하세요"]
+        M2["ai: Hello"]
+        M3["human: 감사합니다"]
+        M4["ai: Thank you"]
+    end
+    MSG --> 최종출력
+```
+
 
 `FewShotChatMessagePromptTemplate`은 Few-shot 예제들을 채팅 메시지 형태로 변환해주는 프롬프트 템플릿입니다. 핵심 구조는 이렇습니다:
 
@@ -208,6 +249,20 @@ selector.add_example(
 
 ### 개념 4: 다양한 예제 선택 전략
 
+> 📊 **그림 4**: 예제 선택 전략 비교 — 상황별 적합한 Selector
+
+```mermaid
+flowchart TD
+    Q{"어떤 상황인가?"}
+    Q -->|"입력과 의미적으로<br/>가까운 예제 필요"| A["SemanticSimilarity<br/>ExampleSelector"]
+    Q -->|"관련성 + 다양성<br/>동시에 필요"| B["MaxMarginalRelevance<br/>ExampleSelector"]
+    Q -->|"토큰 수 제한이<br/>중요"| C["LengthBased<br/>ExampleSelector"]
+    A --> A1["임베딩 유사도 기반<br/>상위 k개 선택"]
+    B --> B1["유사한 후보 중<br/>서로 다른 k개 선택"]
+    C --> C1["max_length 이내에서<br/>예제 수 자동 조절"]
+```
+
+
 `SemanticSimilarityExampleSelector` 외에도 LangChain은 상황별로 쓸 수 있는 선택 전략을 제공합니다:
 
 **LengthBasedExampleSelector** — 토큰 제한이 걱정될 때:
@@ -246,7 +301,7 @@ mmr_selector = MaxMarginalRelevanceExampleSelector.from_examples(
 )
 ```
 
-앞서 [Session 3.2: 고급 프롬프트 패턴](./02-고급-프롬프트-패턴.md)에서 배운 `RunnableBranch`와 결합하면, 입력 유형에 따라 다른 예제 선택 전략을 적용하는 것도 가능합니다.
+앞서 [Session 3.2: 고급 프롬프트 패턴](ch03/session_3_2.md)에서 배운 `RunnableBranch`와 결합하면, 입력 유형에 따라 다른 예제 선택 전략을 적용하는 것도 가능합니다.
 
 ## 실습: 직접 해보기
 
@@ -419,6 +474,23 @@ Few-shot 프롬프팅이라는 개념이 세상을 놀라게 한 건 2020년, Op
 
 흥미로운 점은, 이것이 의도된 기능이라기보다는 **모델 규모를 키우다 보니 자연스럽게 발현된 능력(Emergent Ability)**이라는 것입니다. 작은 모델에서는 나타나지 않다가, 파라미터 수가 일정 임계점을 넘자 갑자기 나타났거든요. 왜 이런 능력이 생기는지는 아직 활발히 연구되고 있는 열린 질문입니다.
 
+> 📊 **그림 3**: SemanticSimilarityExampleSelector의 동작 원리
+
+```mermaid
+sequenceDiagram
+    participant U as 사용자 입력
+    participant S as ExampleSelector
+    participant EMB as 임베딩 모델
+    participant VS as 벡터 스토어(FAISS)
+    U->>S: '금리가 인상되었다'
+    S->>EMB: 입력 텍스트 임베딩 요청
+    EMB-->>S: 입력 벡터 반환
+    S->>VS: 코사인 유사도 검색(k=2)
+    VS-->>S: 금융 관련 예제 2개 반환
+    S-->>U: 선택된 예제로 프롬프트 구성
+```
+
+
 ### 예제 순서가 결과를 바꾼다?
 
 2021년 Zhao 등이 발표한 논문 *"Calibrate Before Use"*에서 충격적인 사실이 밝혀졌습니다. Few-shot 예제의 **순서**를 바꾸는 것만으로 모델의 정확도가 거의 0%에서 거의 100%까지 변할 수 있다는 것이었죠. 같은 예제를 사용하더라도 배치 순서에 따라 결과가 극적으로 달라진다니, 놀랍지 않나요? 이 연구는 예제 선택뿐 아니라 **예제 정렬(ordering)**까지 고려해야 한다는 중요한 교훈을 남겼습니다.
@@ -451,7 +523,7 @@ Few-shot 프롬프팅이라는 개념이 세상을 놀라게 한 건 2020년, Op
 
 ## 다음 섹션 미리보기
 
-이번 섹션에서 Few-shot 프롬프팅으로 LLM에게 "이렇게 해줘"라는 패턴을 보여주는 방법을 배웠습니다. 다음 섹션 **[Session 3.4: 프롬프트 합성과 파이프라인](./04-프롬프트-관리와-langchain-hub.md)**에서는 여러 프롬프트를 조합하고 단계별로 연결하는 프롬프트 파이프라인을 다룹니다. 프롬프트 재사용성을 극대화하고, 복잡한 작업을 작은 프롬프트 단위로 분해하는 전략을 배울 거예요.
+이번 섹션에서 Few-shot 프롬프팅으로 LLM에게 "이렇게 해줘"라는 패턴을 보여주는 방법을 배웠습니다. 다음 섹션 **[Session 3.4: 프롬프트 합성과 파이프라인](ch03/session_3_4.md)**에서는 여러 프롬프트를 조합하고 단계별로 연결하는 프롬프트 파이프라인을 다룹니다. 프롬프트 재사용성을 극대화하고, 복잡한 작업을 작은 프롬프트 단위로 분해하는 전략을 배울 거예요.
 
 ## 참고 자료
 
@@ -463,9 +535,9 @@ Few-shot 프롬프팅이라는 개념이 세상을 놀라게 한 건 2020년, Op
 
 ---
 ### 🔗 Related Sessions
-- [lcel](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [invoke](01-langchain-소개와-개발-환경-설정/04-첫-번째-langchain-애플리케이션.md) (prerequisite)
-- [chatprompttemplate](01-langchain-소개와-개발-환경-설정/04-첫-번째-langchain-애플리케이션.md) (prerequisite)
-- [messagesplaceholder](./02-고급-프롬프트-패턴.md) (prerequisite)
-- [runnablebranch](./02-고급-프롬프트-패턴.md) (prerequisite)
-- [embedding](07-임베딩과-벡터-스토어/01-텍스트-임베딩-이해.md) (prerequisite)
+- [lcel](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [invoke](../01-langchain-소개와-개발-환경-설정/04-첫-번째-langchain-애플리케이션.md) (prerequisite)
+- [chatprompttemplate](../01-langchain-소개와-개발-환경-설정/04-첫-번째-langchain-애플리케이션.md) (prerequisite)
+- [messagesplaceholder](../03-프롬프트-엔지니어링과-템플릿/02-고급-프롬프트-패턴.md) (prerequisite)
+- [runnablebranch](../03-프롬프트-엔지니어링과-템플릿/02-고급-프롬프트-패턴.md) (prerequisite)
+- [embedding](../07-임베딩과-벡터-스토어/01-텍스트-임베딩-이해.md) (prerequisite)

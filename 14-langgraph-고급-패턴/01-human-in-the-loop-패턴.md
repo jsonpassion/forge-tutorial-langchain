@@ -6,7 +6,20 @@
 
 이 섹션에서는 LangGraph가 제공하는 Human-in-the-Loop(HITL) 패턴을 학습합니다. AI 에이전트가 자율적으로 작업을 수행하다가 특정 시점에서 멈추고, 사람의 승인이나 입력을 받은 뒤 다시 실행을 이어가는 워크플로우를 구축하는 방법을 다룹니다.
 
-**선수 지식**: [Ch13: LangGraph 기초](13-langgraph-기초/01-langgraph-소개와-핵심-개념.md)에서 배운 `StateGraph`, 노드(Node), 엣지(Edge)의 개념과 기본적인 그래프 구성 방법
+> 📊 **그림 1**: Human-in-the-Loop 전체 흐름 — 그래프가 중단되고 재개되는 과정
+
+```mermaid
+flowchart LR
+    A["그래프 실행"] --> B["interrupt() 호출"]
+    B --> C["실행 중단<br/>상태 저장"]
+    C --> D["사용자에게<br/>중단 정보 전달"]
+    D --> E["사용자 판단<br/>승인 / 거부 / 수정"]
+    E --> F["Command(resume=값)"]
+    F --> G["그래프 재개<br/>이어서 실행"]
+```
+
+
+**선수 지식**: [Ch13: LangGraph 기초](ch13)에서 배운 `StateGraph`, 노드(Node), 엣지(Edge)의 개념과 기본적인 그래프 구성 방법
 **학습 목표**:
 - `interrupt()` 함수로 그래프 실행을 일시 중단하고 외부 입력을 받을 수 있다
 - `Command(resume=...)` 를 사용하여 중단된 그래프를 재개할 수 있다
@@ -14,6 +27,9 @@
 - `interrupt_before`/`interrupt_after` 정적 브레이크포인트의 용도를 이해한다
 
 ## 왜 알아야 할까?
+
+![LangGraph Human-in-the-Loop 승인/거부 워크플로우 — LLM이 Human 노드를 거쳐 Approve 또는 Reject 분기로 나뉘는 공식 다이어그램](../images/ch14/approve-or-reject-f508852f.png "LangChain Blog — Making it easier to build human-in-the-loop agents with interrupt")
+
 
 AI 에이전트가 이메일을 보내거나, 데이터베이스를 수정하거나, 결제를 처리한다고 상상해 보세요. 만약 에이전트가 잘못된 판단을 내렸는데 아무런 확인 없이 실행된다면 어떻게 될까요? 잘못된 사람에게 기밀 이메일이 전송되거나, 중요한 데이터가 삭제될 수 있습니다.
 
@@ -56,6 +72,25 @@ def review_node(state):
 2. 런타임은 현재 상태를 **체크포인터(Checkpointer)** 에 저장합니다
 3. 호출자에게 `__interrupt__` 필드를 통해 중단 정보가 전달됩니다
 4. `Command(resume=값)`으로 재개하면, 해당 값이 `interrupt()`의 반환값이 됩니다
+
+> 📊 **그림 2**: interrupt() 내부 동작 — 런타임과 체크포인터의 협력
+
+```mermaid
+sequenceDiagram
+    participant N as 노드 함수
+    participant R as LangGraph 런타임
+    participant C as 체크포인터
+    participant U as 사용자(호출자)
+    N->>R: interrupt(payload) 호출
+    R->>C: 현재 상태 저장
+    R->>U: __interrupt__ 필드로 payload 전달
+    Note over U: 사용자가 판단...
+    U->>R: Command(resume=값)
+    R->>C: 저장된 상태 복원
+    R->>N: 노드 처음부터 재실행
+    Note over N: interrupt()가 값을 반환
+```
+
 
 ### 개념 2: Command(resume=...) — "재생 버튼" 누르기
 
@@ -150,6 +185,9 @@ graph = builder.compile(
 
 ### 개념 5: 도구 실행 전 승인 워크플로우
 
+![LangGraph 도구 실행 전 Human 검토 흐름 — LLM에서 Human을 거쳐 Tool Executor로 이어지는 공식 다이어그램](../images/ch14/tool-call-review-ba7f02a8.png "LangChain Blog — Making it easier to build human-in-the-loop agents with interrupt")
+
+
 실제로 가장 많이 쓰이는 HITL 패턴은 **에이전트가 도구를 호출하기 전에 사용자 승인을 받는 것**입니다. 예를 들어, 에이전트가 이메일을 보내려 할 때 "정말로 이 이메일을 보낼까요?"라고 물어보는 거죠.
 
 ```python
@@ -180,6 +218,21 @@ def send_email(to: str, subject: str, body: str) -> str:
 ```
 
 이 패턴은 세 가지 선택지를 제공합니다:
+
+> 📊 **그림 4**: 도구 실행 승인 워크플로우 — 세 가지 분기
+
+```mermaid
+flowchart TD
+    A["에이전트가 도구 호출 시도"] --> B["interrupt()<br/>승인 요청"]
+    B --> C{"사용자 결정"}
+    C -->|approve| D["원래 계획대로<br/>도구 실행"]
+    C -->|edit| E["수정된 내용으로<br/>도구 실행"]
+    C -->|reject| F["실행 취소<br/>피드백 반환"]
+    D --> G["결과 반환"]
+    E --> G
+    F --> G
+```
+
 - **승인(Approve)**: 원래 계획대로 실행
 - **수정(Edit)**: 사용자가 내용을 수정한 뒤 실행
 - **거부(Reject)**: 실행을 취소하고 피드백 제공
@@ -187,6 +240,18 @@ def send_email(to: str, subject: str, body: str) -> str:
 ## 실습: 직접 해보기
 
 아래는 완전히 실행 가능한 예제입니다. AI 에이전트가 작업 계획을 세운 뒤, 사용자 승인을 받고, 승인된 경우에만 실행하는 워크플로우를 구축합니다.
+
+> 📊 **그림 5**: 실습 워크플로우 구조 — 계획, 승인, 실행 3단계
+
+```mermaid
+flowchart LR
+    S(("START")) --> P["plan_node<br/>계획 수립"]
+    P --> A["approval_node<br/>interrupt() 발생"]
+    A --> E["execute_node<br/>결과 생성"]
+    E --> F(("END"))
+    style A fill:#ff9,stroke:#f90,stroke-width:2px
+```
+
 
 ```python
 """
@@ -418,6 +483,6 @@ LangGraph를 만든 Harrison Chase와 LangChain 팀은 2024년 초 LangGraph를 
 
 ---
 ### 🔗 Related Sessions
-- [node](01-langchain-소개와-개발-환경-설정/05-langchain-생태계-탐색.md) (prerequisite)
-- [edge](01-langchain-소개와-개발-환경-설정/05-langchain-생태계-탐색.md) (prerequisite)
-- [checkpointer](./02-체크포인팅과-상태-영속성.md) (prerequisite)
+- [node](../01-langchain-소개와-개발-환경-설정/05-langchain-생태계-탐색.md) (prerequisite)
+- [edge](../01-langchain-소개와-개발-환경-설정/05-langchain-생태계-탐색.md) (prerequisite)
+- [checkpointer](../14-langgraph-고급-패턴/02-체크포인팅과-상태-영속성.md) (prerequisite)

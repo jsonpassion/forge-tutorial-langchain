@@ -6,7 +6,7 @@
 
 이 섹션에서는 RAG 시스템을 "감"이 아닌 "숫자"로 평가하는 방법을 배웁니다. 먼저 수동 평가의 한계를 이해한 뒤, RAGAS 프레임워크의 핵심 메트릭(충실도, 관련성, 정밀도, 재현율)을 단계별로 학습합니다. 평가 데이터셋을 체계적으로 구축하는 방법을 익히고, 기본 RAG 체인과 개선된 RAG 체인의 성능 차이를 RAGAS로 비교하는 실습까지 진행합니다.
 
-**선수 지식**: 앞서 [9.1 기본 RAG 체인 구축](./01-기본-rag-체인-구축.md)에서 배운 RAG 파이프라인 5단계, [9.4 고급 RAG 패턴](./04-고급-rag-패턴.md)에서 다룬 HyDE, 재랭킹, Multi-Query Retriever 등의 고급 검색 기법
+**선수 지식**: 앞서 [9.1 기본 RAG 체인 구축](ch09/session_01.md)에서 배운 RAG 파이프라인 5단계, [9.4 고급 RAG 패턴](ch09/session_04.md)에서 다룬 HyDE, 재랭킹, Multi-Query Retriever 등의 고급 검색 기법
 
 **학습 목표**:
 - RAG 평가가 왜 "검색"과 "생성"을 분리해서 측정해야 하는지 설명할 수 있다
@@ -20,13 +20,28 @@
 
 실제로 RAG 시스템을 배포하면 다양한 문제가 발생합니다. 검색된 문서가 질문과 관련이 없거나, 관련 문서를 찾았는데 LLM이 엉뚱한 답변을 만들거나(할루시네이션), 답변은 정확한데 질문의 핵심을 벗어나는 경우도 있죠. 이런 문제들을 "느낌"으로 잡는 건 한계가 있습니다.
 
-[9.4 고급 RAG 패턴](./04-고급-rag-패턴.md)에서 ParentDocumentRetriever, HyDE, Cross-Encoder 재랭킹 등 다양한 기법을 배웠는데요, 이 기법들이 **실제로 얼마나 효과가 있는지** 어떻게 알 수 있을까요? "A 방식이 B 방식보다 낫다"고 말하려면 **정량적 증거**가 필요합니다.
+[9.4 고급 RAG 패턴](ch09/session_04.md)에서 ParentDocumentRetriever, HyDE, Cross-Encoder 재랭킹 등 다양한 기법을 배웠는데요, 이 기법들이 **실제로 얼마나 효과가 있는지** 어떻게 알 수 있을까요? "A 방식이 B 방식보다 낫다"고 말하려면 **정량적 증거**가 필요합니다.
 
-하지만 평가를 처음부터 복잡하게 시작할 필요는 없습니다. 이번 세션에서는 **RAGAS 프레임워크 하나에 집중**하여 RAG 평가의 기초를 탄탄히 다지겠습니다. 다음 [9.6 프로덕션 RAG 아키텍처](./06-프로덕션-rag-아키텍처.md)에서 LangSmith를 활용한 체계적 모니터링과 A/B 테스트 프레임워크를 다룰 예정이니, 이번 세션에서 배운 메트릭 개념이 그 기반이 됩니다.
+하지만 평가를 처음부터 복잡하게 시작할 필요는 없습니다. 이번 세션에서는 **RAGAS 프레임워크 하나에 집중**하여 RAG 평가의 기초를 탄탄히 다지겠습니다. 다음 [9.6 프로덕션 RAG 아키텍처](ch09/session_06.md)에서 LangSmith를 활용한 체계적 모니터링과 A/B 테스트 프레임워크를 다룰 예정이니, 이번 세션에서 배운 메트릭 개념이 그 기반이 됩니다.
 
 ## 핵심 개념
 
 ### 개념 1: RAG 평가의 두 축 — 검색 vs 생성
+
+> 📊 **그림 1**: RAG 파이프라인의 두 가지 평가 지점
+
+```mermaid
+flowchart LR
+    A["사용자 질문"] --> B["검색기<br/>Retriever"]
+    B --> C["검색된 문서들<br/>Context"]
+    C --> D["LLM 생성"]
+    D --> E["최종 답변<br/>Response"]
+    B -.->|"검색 평가"| F["Context Precision<br/>Context Recall"]
+    D -.->|"생성 평가"| G["Faithfulness<br/>Answer Relevancy"]
+    style F fill:#e1f5fe,stroke:#0288d1
+    style G fill:#fff3e0,stroke:#f57c00
+```
+
 
 > 💡 **비유**: RAG 시스템을 평가하는 건 레스토랑을 평가하는 것과 비슷합니다. "재료 구매"(검색)와 "요리"(생성)를 따로 평가해야 전체 품질을 정확히 파악할 수 있죠. 신선한 재료를 사왔는데 요리를 망칠 수도 있고, 평범한 재료로 놀라운 요리를 만들 수도 있으니까요.
 
@@ -92,6 +107,23 @@ for question in test_questions:
 RAGAS(Retrieval Augmented Generation Assessment)는 RAG 시스템을 자동으로 평가하는 오픈소스 프레임워크입니다. **사람의 라벨링(Ground Truth) 없이도** LLM을 심판(Judge)으로 활용하여 평가할 수 있다는 것이 핵심 특징이에요.
 
 RAGAS의 4대 핵심 메트릭을 하나씩 차근차근 살펴보겠습니다:
+
+> 📊 **그림 2**: RAGAS 4대 메트릭의 평가 대상과 역할
+
+```mermaid
+graph TD
+    R["RAGAS 평가 프레임워크"] --> GEN["생성 평가"]
+    R --> RET["검색 평가"]
+    GEN --> F["Faithfulness<br/>답변이 컨텍스트에 충실한가"]
+    GEN --> AR["Answer Relevancy<br/>답변이 질문에 적절한가"]
+    RET --> CP["Context Precision<br/>검색 문서가 관련 있는가"]
+    RET --> CR["Context Recall<br/>필요한 정보를 다 찾았는가"]
+    F -.->|"필요 입력"| I1["response + contexts"]
+    AR -.->|"필요 입력"| I2["response + user_input"]
+    CP -.->|"필요 입력"| I3["contexts + user_input"]
+    CR -.->|"필요 입력"| I4["contexts + reference"]
+```
+
 
 **1. Faithfulness (충실도)** — 생성 평가
 
@@ -159,6 +191,22 @@ Context Recall = 5/6 ≈ 0.83
 ```
 
 이 4가지 메트릭을 종합하면 RAG 시스템의 약점을 정확히 진단할 수 있습니다:
+
+> 📊 **그림 3**: RAGAS 메트릭 기반 RAG 시스템 진단 흐름
+
+```mermaid
+flowchart TD
+    START["RAGAS 평가 실행"] --> CHK1{"Faithfulness 낮음?"}
+    CHK1 -->|"Yes"| FIX1["프롬프트 강화<br/>온도 낮추기"]
+    CHK1 -->|"No"| CHK2{"Answer Relevancy 낮음?"}
+    CHK2 -->|"Yes"| FIX2["프롬프트에<br/>질문 재확인 추가"]
+    CHK2 -->|"No"| CHK3{"Context Precision 낮음?"}
+    CHK3 -->|"Yes"| FIX3["임베딩 모델 변경<br/>필터링 추가"]
+    CHK3 -->|"No"| CHK4{"Context Recall 낮음?"}
+    CHK4 -->|"Yes"| FIX4["검색 k값 증가<br/>청킹 전략 변경"]
+    CHK4 -->|"No"| GOOD["RAG 시스템 양호"]
+```
+
 
 | 진단 패턴 | 가능한 원인 | 개선 방향 |
 |-----------|------------|----------|
@@ -293,6 +341,26 @@ eval_questions = [
 > 🔥 **실무 팁**: 평가 데이터셋은 최소 **20~50개** 질문을 권장합니다. 처음에는 10개로 시작하여 평가 파이프라인을 검증한 뒤, 점진적으로 늘려가세요. 질문 유형 비율은 단순 사실 40%, 개념 설명 30%, 종합/추론 20%, 엣지 케이스 10% 정도가 적당합니다.
 
 ## 실습: 직접 해보기
+
+> 📊 **그림 5**: 실습 워크플로우 — Baseline vs Improved 비교 평가
+
+```mermaid
+sequenceDiagram
+    participant D as 샘플 문서
+    participant V as 벡터 스토어
+    participant B as Baseline RAG<br/>(k=2, 기본 프롬프트)
+    participant I as Improved RAG<br/>(k=4, 강화 프롬프트)
+    participant R as RAGAS 평가
+    D->>V: 텍스트 분할 + 임베딩
+    Note over B,I: 동일한 평가 데이터셋 사용
+    V->>B: 검색 (top 2)
+    B->>R: 답변 + 컨텍스트
+    V->>I: 검색 (top 4)
+    I->>R: 답변 + 컨텍스트
+    R->>R: 4대 메트릭 계산
+    Note over R: Baseline vs Improved<br/>정량 비교
+```
+
 
 아래 실습에서는 간단한 RAG 시스템을 구축하고, RAGAS 메트릭으로 평가한 뒤, 프롬프트와 검색 설정을 개선하여 성능 변화를 비교합니다.
 
@@ -653,7 +721,7 @@ $$\text{Answer Relevancy} = \frac{1}{N} \sum_{i=1}^{N} \text{sim}(q, q_i)$$
 
 ## 다음 섹션 미리보기
 
-이번 세션에서 RAGAS 메트릭을 이해하고 RAG 시스템을 정량적으로 평가하는 기초를 다졌으니, 다음 [9.6 프로덕션 RAG 아키텍처](./06-프로덕션-rag-아키텍처.md)에서는 이를 실제 서비스에 적용합니다. **LangSmith를 활용한 체계적 모니터링 파이프라인** 구축, **A/B 테스트 프레임워크**로 고급 RAG 패턴(HyDE, 재랭킹 등)의 효과를 정량 비교하는 방법, 그리고 캐싱 전략, 비용 최적화, 확장 가능한 아키텍처 패턴을 함께 다룹니다.
+이번 세션에서 RAGAS 메트릭을 이해하고 RAG 시스템을 정량적으로 평가하는 기초를 다졌으니, 다음 [9.6 프로덕션 RAG 아키텍처](ch09/session_06.md)에서는 이를 실제 서비스에 적용합니다. **LangSmith를 활용한 체계적 모니터링 파이프라인** 구축, **A/B 테스트 프레임워크**로 고급 RAG 패턴(HyDE, 재랭킹 등)의 효과를 정량 비교하는 방법, 그리고 캐싱 전략, 비용 최적화, 확장 가능한 아키텍처 패턴을 함께 다룹니다.
 
 ## 참고 자료
 
@@ -665,11 +733,11 @@ $$\text{Answer Relevancy} = \frac{1}{N} \sum_{i=1}^{N} \text{sim}(q, q_i)$$
 
 ---
 ### 🔗 Related Sessions
-- [rag_pipeline](./01-기본-rag-체인-구축.md) (prerequisite)
-- [format_docs](./01-기본-rag-체인-구축.md) (prerequisite)
-- [retrieval_chain](./01-기본-rag-체인-구축.md) (prerequisite)
-- [stuff_documents_chain](./01-기본-rag-체인-구축.md) (prerequisite)
-- [production_rag_prompt](./02-rag-프롬프트-최적화.md) (prerequisite)
-- [hyde_embeddings](./04-고급-rag-패턴.md) (prerequisite)
-- [cross_encoder_reranker](./04-고급-rag-패턴.md) (prerequisite)
-- [multi_query_retriever](./04-고급-rag-패턴.md) (prerequisite)
+- [rag_pipeline](../09-ragretrieval-augmented-generation-구축/01-기본-rag-체인-구축.md) (prerequisite)
+- [format_docs](../09-ragretrieval-augmented-generation-구축/01-기본-rag-체인-구축.md) (prerequisite)
+- [retrieval_chain](../09-ragretrieval-augmented-generation-구축/01-기본-rag-체인-구축.md) (prerequisite)
+- [stuff_documents_chain](../09-ragretrieval-augmented-generation-구축/01-기본-rag-체인-구축.md) (prerequisite)
+- [production_rag_prompt](../09-ragretrieval-augmented-generation-구축/02-rag-프롬프트-최적화.md) (prerequisite)
+- [hyde_embeddings](../09-ragretrieval-augmented-generation-구축/04-고급-rag-패턴.md) (prerequisite)
+- [cross_encoder_reranker](../09-ragretrieval-augmented-generation-구축/04-고급-rag-패턴.md) (prerequisite)
+- [multi_query_retriever](../09-ragretrieval-augmented-generation-구축/04-고급-rag-패턴.md) (prerequisite)

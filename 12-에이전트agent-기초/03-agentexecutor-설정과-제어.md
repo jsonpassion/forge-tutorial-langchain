@@ -4,7 +4,7 @@
 
 ## 개요
 
-이 섹션에서는 AgentExecutor의 **실행 제어 파라미터**를 심층적으로 다룹니다. [세션 12.2: create_react_agent로 에이전트 구축](./02-create-react-agent로-에이전트-구축.md)에서 AgentExecutor의 기본 사용법을 배웠다면, 이번에는 에이전트가 "폭주"하지 않도록 안전장치를 설정하고, 오류 상황을 우아하게 처리하며, 에이전트의 추론 과정을 투명하게 들여다보는 방법을 익힙니다.
+이 섹션에서는 AgentExecutor의 **실행 제어 파라미터**를 심층적으로 다룹니다. [세션 12.2: create_react_agent로 에이전트 구축](ch12/session_12_2.md)에서 AgentExecutor의 기본 사용법을 배웠다면, 이번에는 에이전트가 "폭주"하지 않도록 안전장치를 설정하고, 오류 상황을 우아하게 처리하며, 에이전트의 추론 과정을 투명하게 들여다보는 방법을 익힙니다.
 
 **선수 지식**: 세션 12.1의 ReAct 패턴과 Thought→Action→Observation 루프, 세션 12.2의 `create_react_agent` 및 `AgentExecutor` 기본 구성
 
@@ -24,6 +24,31 @@
 - 에이전트가 어떤 경로로 결론에 도달했는지 **추적이 불가능**한 경우
 
 이런 상황을 방지하려면 AgentExecutor의 제어 파라미터를 정확히 이해해야 합니다. 마치 자동차의 브레이크, 속도 제한 장치, 블랙박스처럼 — 에이전트를 안전하고 투명하게 운영하기 위한 필수 도구들이죠.
+
+> 📊 **그림 1**: AgentExecutor의 제어 파라미터가 실행 루프에서 작동하는 위치
+
+```mermaid
+flowchart TD
+    START["사용자 질문 입력"] --> LOOP{"Thought-Action-Observation<br/>루프 시작"}
+    LOOP --> THINK["Thought: LLM 추론"]
+    THINK --> PARSE{"출력 파싱 성공?"}
+    PARSE -- "실패" --> HANDLE["handle_parsing_errors<br/>오류 처리 후 재시도"]
+    HANDLE --> THINK
+    PARSE -- "성공" --> ACTION["Action: 도구 호출"]
+    ACTION --> OBS["Observation: 결과 수신"]
+    OBS --> TRIM["trim_intermediate_steps<br/>이전 단계 정리"]
+    TRIM --> CHECK_ITER{"max_iterations<br/>초과?"}
+    CHECK_ITER -- "아니오" --> CHECK_TIME{"max_execution_time<br/>초과?"}
+    CHECK_TIME -- "아니오" --> CHECK_DONE{"Final Answer<br/>도출?"}
+    CHECK_DONE -- "아니오" --> THINK
+    CHECK_DONE -- "예" --> RESULT["최종 답변 반환"]
+    CHECK_ITER -- "예" --> STOP{"early_stopping_method"}
+    CHECK_TIME -- "예" --> STOP
+    STOP -- "force" --> FORCE["즉시 중단<br/>고정 메시지 반환"]
+    STOP -- "generate" --> GEN["LLM에게 최선의<br/>답변 생성 요청"]
+    RESULT --> LOG["return_intermediate_steps<br/>추론 과정 기록"]
+```
+
 
 ## 핵심 개념
 
@@ -134,6 +159,20 @@ print(result["output"])
 
 `early_stopping_method`는 `max_iterations`나 `max_execution_time`에 도달했을 때 **어떻게 에이전트를 종료할지** 결정합니다. 두 가지 옵션이 있습니다:
 
+> 📊 **그림 2**: early_stopping_method — force와 generate의 동작 차이
+
+```mermaid
+flowchart LR
+    LIMIT["반복/시간<br/>한도 도달"] --> DECIDE{"early_stopping<br/>_method"}
+    DECIDE -- "force" --> F1["즉시 중단"]
+    F1 --> F2["고정 메시지 반환<br/>'Agent stopped due to...'"]
+    F2 --> F3["추가 LLM 호출 없음<br/>비용 절약"]
+    DECIDE -- "generate" --> G1["중간 단계 수집"]
+    G1 --> G2["LLM에게 최종 답변<br/>생성 요청 (1회)"]
+    G2 --> G3["불완전하지만<br/>의미 있는 답변"]
+```
+
+
 **`"force"` (기본값)**: 즉시 중단하고 고정 메시지를 반환합니다.
 
 ```python
@@ -178,6 +217,21 @@ print(result["output"])
 > 💡 **비유**: 레스토랑에서 웨이터가 주문을 받을 때를 생각해보세요. 손님이 메뉴에 없는 걸 주문하면? **방법 1**: "그런 메뉴 없습니다" 하고 주문을 거부(기본값 — 에러 발생). **방법 2**: "혹시 이것을 말씀하신 건가요?" 하고 다시 물어보기(`True` — LLM에게 다시 전달). **방법 3**: 매니저에게 보내서 판단하게 하기(커스텀 함수).
 
 LLM이 예상한 형식(Action/Action Input)을 지키지 않으면 `OutputParserException`이 발생합니다. `handle_parsing_errors`로 이를 우아하게 처리할 수 있습니다.
+
+> 📊 **그림 3**: handle_parsing_errors의 4가지 처리 방식
+
+```mermaid
+flowchart TD
+    ERR["LLM 출력 파싱 실패<br/>OutputParserException"] --> MODE{"handle_parsing_errors<br/>설정값"}
+    MODE -- "False (기본)" --> M1["예외 발생<br/>실행 중단"]
+    MODE -- "True" --> M2["에러 메시지를<br/>LLM에게 전달"]
+    M2 --> RETRY["LLM 자기 수정 후<br/>올바른 형식으로 재시도"]
+    MODE -- "문자열" --> M3["커스텀 메시지를<br/>LLM에게 전달"]
+    M3 --> RETRY
+    MODE -- "함수" --> M4["에러 분석 후<br/>맞춤형 안내 생성"]
+    M4 --> RETRY
+```
+
 
 ```python
 # 방법 1: 기본값 (False) — 에러가 그대로 발생
@@ -232,6 +286,20 @@ executor_callable = AgentExecutor(
 > 💡 **비유**: 수학 시험에서 "풀이 과정을 보여주세요"라고 하는 것과 같습니다. 최종 답만 보면 맞았는지 알 수 있지만, 풀이 과정을 보면 **어디서 잘못됐는지** 또는 **얼마나 효율적으로 풀었는지** 분석할 수 있죠.
 
 `return_intermediate_steps=True`로 설정하면, 에이전트가 거친 모든 Action과 Observation을 리스트로 반환합니다. 각 단계는 `(AgentAction, str)` 튜플로 구성됩니다.
+
+> 📊 **그림 4**: return_intermediate_steps로 반환되는 데이터 구조
+
+```mermaid
+flowchart LR
+    RESULT["invoke() 결과"] --> OUTPUT["output<br/>최종 답변 문자열"]
+    RESULT --> STEPS["intermediate_steps<br/>리스트"]
+    STEPS --> S1["단계 1: 튜플"]
+    STEPS --> S2["단계 2: 튜플"]
+    STEPS --> SN["단계 N: 튜플"]
+    S1 --> ACT1["AgentAction<br/>.tool / .tool_input / .log"]
+    S1 --> OBS1["Observation<br/>도구 실행 결과 (str)"]
+```
+
 
 ```python
 executor_with_steps = AgentExecutor(
@@ -515,9 +583,9 @@ LangChain 팀은 AgentExecutor의 한계를 인식하고 **LangGraph**라는 새
 
 ---
 ### 🔗 Related Sessions
-- [agent](./01-에이전트-개념과-react-패턴.md) (prerequisite)
-- [react_pattern](./01-에이전트-개념과-react-패턴.md) (prerequisite)
-- [agent_executor](./01-에이전트-개념과-react-패턴.md) (prerequisite)
-- [intermediate_steps](./01-에이전트-개념과-react-패턴.md) (prerequisite)
-- [create_react_agent_usage](./02-create-react-agent로-에이전트-구축.md) (prerequisite)
-- [react_prompt_variables](./02-create-react-agent로-에이전트-구축.md) (prerequisite)
+- [agent](../12-에이전트agent-기초/01-에이전트-개념과-react-패턴.md) (prerequisite)
+- [react_pattern](../12-에이전트agent-기초/01-에이전트-개념과-react-패턴.md) (prerequisite)
+- [agent_executor](../12-에이전트agent-기초/01-에이전트-개념과-react-패턴.md) (prerequisite)
+- [intermediate_steps](../12-에이전트agent-기초/01-에이전트-개념과-react-패턴.md) (prerequisite)
+- [create_react_agent_usage](../12-에이전트agent-기초/02-create-react-agent로-에이전트-구축.md) (prerequisite)
+- [react_prompt_variables](../12-에이전트agent-기초/02-create-react-agent로-에이전트-구축.md) (prerequisite)

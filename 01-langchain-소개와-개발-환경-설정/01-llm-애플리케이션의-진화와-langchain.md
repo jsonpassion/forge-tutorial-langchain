@@ -28,6 +28,19 @@
 
 LLM API를 직접 호출하여 애플리케이션을 만들 때, 개발자들이 공통적으로 부딪히는 도전 과제가 있습니다.
 
+> 📊 **그림 1**: LLM 애플리케이션 개발의 5가지 도전 과제
+
+```mermaid
+graph TD
+    CENTER["LLM 애플리케이션 개발"] --> A["1. 프롬프트 관리<br/>복잡한 문자열 조합"]
+    CENTER --> B["2. 모델 종속성<br/>Vendor Lock-in"]
+    CENTER --> C["3. 데이터 연동<br/>PDF, DB, 웹 등"]
+    CENTER --> D["4. 상태 관리<br/>대화 기록, 메모리"]
+    CENTER --> E["5. 테스트 어려움<br/>비결정적 출력"]
+    style CENTER fill:#ff6b6b,color:#fff
+```
+
+
 **1. 프롬프트 관리의 복잡성**
 
 프롬프트는 단순한 문자열이 아닙니다. 시스템 메시지, 사용자 입력, 맥락 정보, 출력 형식 지정 등이 뒤섞이면 금세 관리가 어려워지죠.
@@ -83,6 +96,27 @@ assert ask_llm("1+1은?") == "2"  # 어떤 때는 "2입니다", "답은 2예요"
 
 LangChain은 위에서 언급한 도전 과제들을 **추상화 계층(Abstraction Layer)**으로 해결합니다. 핵심 설계 철학은 다음과 같습니다.
 
+> 📊 **그림 2**: LangChain 추상화 계층 — 개발자와 LLM 사이의 다리
+
+```mermaid
+flowchart LR
+    DEV["개발자"] --> LC["LangChain<br/>통합 인터페이스"]
+    LC --> O["OpenAI"]
+    LC --> A["Anthropic"]
+    LC --> G["Google"]
+    LC --> OS["오픈소스 모델"]
+    subgraph 표준 메서드
+        M1["invoke()"]
+        M2["stream()"]
+        M3["batch()"]
+    end
+    LC --- M1
+    LC --- M2
+    LC --- M3
+    style LC fill:#4ecdc4,color:#fff
+```
+
+
 **통합 인터페이스(Unified Interface)**
 
 모든 LLM — OpenAI, Anthropic, Google, 오픈소스 모델 — 을 동일한 인터페이스로 다룹니다. `invoke()`, `stream()`, `batch()` 같은 메서드가 모델에 관계없이 동일하게 동작하거든요.
@@ -126,6 +160,22 @@ print(result)
 
 LangChain은 단독 라이브러리가 아니라 하나의 생태계입니다.
 
+> 📊 **그림 3**: LangChain 생태계 구성 요소
+
+```mermaid
+flowchart TD
+    CORE["LangChain Core<br/>체인, 프롬프트, 파서"] --> LG["LangGraph<br/>상태 기반 에이전트"]
+    CORE --> LS["LangSmith<br/>트레이싱, 평가, 모니터링"]
+    CORE --> LSERV["LangServe<br/>REST API 배포"]
+    LG --> APP["프로덕션 LLM 앱"]
+    LS --> APP
+    LSERV --> APP
+    CORE --> APP
+    style CORE fill:#6c5ce7,color:#fff
+    style APP fill:#00b894,color:#fff
+```
+
+
 | 구성 요소 | 역할 | 비유 |
 |-----------|------|------|
 | **LangChain** | 핵심 프레임워크 — 체인, 프롬프트, 파서 등 | 레고 블록 |
@@ -138,6 +188,32 @@ LangChain은 단독 라이브러리가 아니라 하나의 생태계입니다.
 > 💡 **비유**: 요리에 비유하면, **LangChain**은 만능 주방(모든 요리를 할 수 있는 풀 키친), **LlamaIndex**는 최고의 냉장고 정리 시스템(데이터를 찾고 가져오는 데 특화), **Semantic Kernel**은 Microsoft 호텔 주방(MS 생태계와 완벽 통합)입니다.
 
 세 프레임워크는 LLM 애플리케이션 개발이라는 같은 문제를 풀지만, 접근 방식과 강점이 다릅니다.
+
+> 📊 **그림 4**: 프레임워크별 핵심 영역 비교
+
+```mermaid
+flowchart TD
+    subgraph LangChain
+        LC1["오케스트레이션"]
+        LC2["에이전트 워크플로우"]
+        LC3["700+ 통합"]
+    end
+    subgraph LlamaIndex
+        LI1["데이터 인덱싱"]
+        LI2["RAG 최적화"]
+        LI3["160+ 데이터 커넥터"]
+    end
+    subgraph Semantic Kernel
+        SK1["Azure 통합"]
+        SK2[".NET 생태계"]
+        SK3["엔터프라이즈 AI"]
+    end
+    LC1 -.->|"하이브리드 가능"| LI1
+    style LangChain fill:#e17055,color:#fff
+    style LlamaIndex fill:#0984e3,color:#fff
+    style Semantic Kernel fill:#6c5ce7,color:#fff
+```
+
 
 **LangChain — 만능 오케스트레이터**
 

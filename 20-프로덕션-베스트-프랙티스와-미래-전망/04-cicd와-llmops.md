@@ -6,7 +6,7 @@
 
 이 섹션에서는 LLM 애플리케이션에 특화된 CI/CD 파이프라인 구축 방법을 다룹니다. 전통적인 소프트웨어의 단위 테스트/통합 테스트를 넘어, LLM의 비결정적(non-deterministic) 출력을 체계적으로 검증하고, 프롬프트 버전 관리와 A/B 테스트까지 아우르는 **LLMOps** 전략을 학습합니다.
 
-**선수 지식**: [20.3 확장성과 성능](./03-확장성과-성능.md)에서 배운 비동기 처리와 프로덕션 서버 아키텍처, [16.4 LangSmith 평가와 데이터셋](16-콜백과-관찰-가능성/04-llm-애플리케이션-평가.md)에서 배운 `evaluate()` 함수, 커스텀 평가자 작성, 데이터셋 관리 기초
+**선수 지식**: [20.3 확장성과 성능](ch20/session3.md)에서 배운 비동기 처리와 프로덕션 서버 아키텍처, [16.4 LangSmith 평가와 데이터셋](ch16/session4.md)에서 배운 `evaluate()` 함수, 커스텀 평가자 작성, 데이터셋 관리 기초
 
 **학습 목표**:
 - LLM 애플리케이션에 적합한 다층 테스트 전략(단위 → 통합 → 평가)을 CI 파이프라인에 맞게 설계할 수 있다
@@ -16,11 +16,25 @@
 
 ## 왜 알아야 할까?
 
+> 📊 **그림 1**: LLMOps CI/CD 파이프라인 전체 흐름
+
+```mermaid
+flowchart LR
+    A["코드/프롬프트 변경"] --> B["PR 생성"]
+    B --> C["단위 테스트"]
+    C --> D["LLM 평가"]
+    D --> E{"배포 게이트<br/>점수 >= 임계값?"}
+    E -->|통과| F["프롬프트 승격"]
+    E -->|실패| G["PR 차단"]
+    F --> H["카나리 배포<br/>10% 트래픽"]
+    H --> I["전체 배포"]
+```
+
 "프롬프트 하나 바꿨을 뿐인데 왜 서비스가 망가졌죠?"
 
 이 말은 LLM 애플리케이션을 프로덕션에서 운영해본 팀이라면 한 번쯤 경험하는 악몽입니다. 전통적인 소프트웨어에서는 코드 변경 → 테스트 → 배포라는 흐름이 확립되어 있지만, LLM 애플리케이션에는 치명적인 차이가 있거든요. **같은 입력에도 매번 다른 출력**이 나올 수 있다는 겁니다.
 
-앞서 [20.1 프로덕션 보안](./01-프로덕션-보안.md)에서 보안을, [20.2 비용 최적화](./02-비용-최적화.md)에서 비용을, [20.3 확장성과 성능](./03-확장성과-성능.md)에서 성능을 다뤘습니다. 이 모든 전략이 아무리 훌륭해도, **"이 변경이 품질을 떨어뜨리지 않는다"는 보장** 없이 배포하면 무용지물이죠. [16.4](16-콜백과-관찰-가능성/04-llm-애플리케이션-평가.md)에서 LangSmith `evaluate()`로 체인 품질을 측정하는 방법을 배웠는데, 그걸 **매번 수동으로 실행**하고 있다면 아직 절반만 온 것입니다. CI/CD와 LLMOps는 그 평가를 **자동화하고, 배포 결정에 연결하는** 마지막 퍼즐 조각입니다.
+앞서 [20.1 프로덕션 보안](ch20/session1.md)에서 보안을, [20.2 비용 최적화](ch20/session2.md)에서 비용을, [20.3 확장성과 성능](ch20/session3.md)에서 성능을 다뤘습니다. 이 모든 전략이 아무리 훌륭해도, **"이 변경이 품질을 떨어뜨리지 않는다"는 보장** 없이 배포하면 무용지물이죠. [16.4](ch16/session4.md)에서 LangSmith `evaluate()`로 체인 품질을 측정하는 방법을 배웠는데, 그걸 **매번 수동으로 실행**하고 있다면 아직 절반만 온 것입니다. CI/CD와 LLMOps는 그 평가를 **자동화하고, 배포 결정에 연결하는** 마지막 퍼즐 조각입니다.
 
 실제로 프로덕션 LLM 팀들은 프롬프트 변경 하나에도 수백 개의 테스트 케이스를 자동 실행하고, 품질 점수가 임계값 이하로 떨어지면 배포를 자동 차단합니다. 이번 섹션에서 그 방법을 직접 구축해보겠습니다.
 
@@ -32,6 +46,19 @@
 
 LLM 애플리케이션의 테스트 피라미드는 전통적인 소프트웨어의 피라미드와는 다른 모양을 띄며, CI 파이프라인에서 각 레벨을 **언제, 어떻게** 실행하느냐가 핵심입니다:
 
+> 📊 **그림 2**: LLM 테스트 피라미드 — 위로 갈수록 비용 증가, 실행 빈도 감소
+
+```mermaid
+graph TD
+    E2E["E2E 평가<br/>전체 파이프라인, 나이틀리"] --> EVAL["LLM 평가(Eval)<br/>출력 품질, 프롬프트 변경 PR"]
+    EVAL --> INT["통합 테스트<br/>체인 연결, 모든 PR"]
+    INT --> UNIT["단위 테스트<br/>파서, 포매팅, 모든 PR"]
+    style E2E fill:#ff6b6b,color:#fff
+    style EVAL fill:#ffa94d,color:#fff
+    style INT fill:#69db7c,color:#fff
+    style UNIT fill:#74c0fc,color:#fff
+```
+
 | 레벨 | 대상 | 특성 | CI 실행 시점 |
 |------|------|------|-------------|
 | **단위 테스트** | 파서, 유틸리티, 프롬프트 포매팅 | 결정적, 빠름 | 모든 PR |
@@ -39,11 +66,12 @@ LLM 애플리케이션의 테스트 피라미드는 전통적인 소프트웨어
 | **평가(Eval)** | LLM 출력 품질 | 비결정적 | 프롬프트/체인 변경 PR |
 | **E2E 평가** | 전체 파이프라인 | 비결정적, 느림 | 나이틀리 빌드 |
 
+![AI 에이전트 테스트 피라미드 — 불확실성 허용 수준에 따른 테스트 계층 구분](../images/ch20/agent-testing-pyramid-7623a278.png "Testing Pyramid for AI Agents - Block Engineering Blog")
+
 ```python
 # 단위 테스트: 결정적 로직을 검증 (모든 PR에서 빠르게 실행)
 import pytest
 from langchain_core.prompts import ChatPromptTemplate
-
 
 def test_prompt_template_formatting():
     """프롬프트 템플릿이 올바르게 변수를 삽입하는지 검증"""
@@ -59,7 +87,6 @@ def test_prompt_template_formatting():
     
     assert "Python 전문가" in messages[0].content
     assert "리스트 컴프리헨션" in messages[1].content
-
 
 def test_output_parser_handles_malformed_json():
     """출력 파서가 잘못된 JSON을 적절히 처리하는지 검증"""
@@ -77,7 +104,7 @@ def test_output_parser_handles_malformed_json():
 
 > 💡 **비유**: 놀이공원의 키 제한 게이트를 떠올려보세요. 키가 120cm 미만이면 롤러코스터를 탈 수 없죠. 배포 게이트도 마찬가지입니다. 평가 점수가 기준 이하면 프로덕션에 "탑승"할 수 없습니다. 다만, 놀이공원 게이트와 달리 여기서는 **여러 차원의 점수**(정확성, 관련성, 유해성 등)를 동시에 체크합니다.
 
-[16.4](16-콜백과-관찰-가능성/04-llm-애플리케이션-평가.md)에서 LangSmith `evaluate()` 함수로 데이터셋 기반 품질 측정과 커스텀 평가자 작성 방법을 배웠습니다. 이번 개념에서는 그 평가 결과를 **CI 파이프라인의 통과/실패 판정에 연결**하는 배포 게이트를 구축합니다.
+[16.4](ch16/session4.md)에서 LangSmith `evaluate()` 함수로 데이터셋 기반 품질 측정과 커스텀 평가자 작성 방법을 배웠습니다. 이번 개념에서는 그 평가 결과를 **CI 파이프라인의 통과/실패 판정에 연결**하는 배포 게이트를 구축합니다.
 
 ```python
 """
@@ -96,7 +123,6 @@ QUALITY_THRESHOLDS = {
     "refusal": 0.9,        # 유해 콘텐츠 거부율은 높아야 함
 }
 
-
 def get_experiment_scores(project_name: str) -> dict[str, list[float]]:
     """LangSmith 실험에서 메트릭별 점수를 조회"""
     client = Client()
@@ -113,7 +139,6 @@ def get_experiment_scores(project_name: str) -> dict[str, list[float]]:
                 scores[key].append(feedback.score)
     
     return scores
-
 
 def check_gate(project_name: str) -> bool:
     """평가 결과가 모든 배포 기준을 충족하는지 검증"""
@@ -138,7 +163,6 @@ def check_gate(project_name: str) -> bool:
     
     return all_passed
 
-
 def main():
     # CI 환경에서 프로젝트명을 GitHub run ID로 구분
     run_id = os.environ.get("GITHUB_RUN_ID", "local")
@@ -151,7 +175,6 @@ def main():
         print("\n🚫 배포 게이트 실패: 품질 기준 미달")
         print("→ 프롬프트를 수정하고 다시 PR을 제출하세요.")
         sys.exit(1)  # CI 파이프라인 실패 처리
-
 
 if __name__ == "__main__":
     main()
@@ -226,11 +249,33 @@ jobs:
 
 파이프라인의 핵심은 **3단 게이트** 구조입니다:
 
+> 📊 **그림 3**: GitHub Actions 3단 게이트 구조
+
+```mermaid
+sequenceDiagram
+    participant PR as Pull Request
+    participant UT as 단위 테스트
+    participant EV as LLM 평가
+    participant GE as 배포 게이트
+    participant DP as 프로덕션 배포
+    PR->>UT: pytest tests/unit/
+    UT-->>PR: 통과
+    PR->>EV: pytest tests/evals/ --langsmith
+    EV->>GE: check_eval_gate.py
+    alt 점수 >= 임계값
+        GE-->>PR: 통과
+        PR->>DP: main 병합 시 배포
+        DP->>DP: promote_prompt.py
+    else 점수 < 임계값
+        GE-->>PR: 실패 - PR 차단
+    end
+```
+
 1. **단위 테스트 게이트**: 결정적 로직(파서, 포매팅)을 빠르게 검증
 2. **LLM 평가 게이트**: 비결정적 출력 품질을 데이터셋 기반으로 측정 → 임계값 미달 시 PR 차단
 3. **배포 게이트**: 모든 검증 통과 후 main 브랜치 병합 시에만 프로덕션 배포
 
-`paths` 필터를 활용하면 프롬프트/체인 파일이 변경된 PR에서만 비용이 드는 LLM 평가를 실행하여, [20.2 비용 최적화](./02-비용-최적화.md)에서 배운 원칙을 CI에도 적용할 수 있습니다.
+`paths` 필터를 활용하면 프롬프트/체인 파일이 변경된 PR에서만 비용이 드는 LLM 평가를 실행하여, [20.2 비용 최적화](ch20/session2.md)에서 배운 원칙을 CI에도 적용할 수 있습니다.
 
 ### 개념 4: 프롬프트 버전 관리
 
@@ -269,7 +314,6 @@ prod_prompt = client.pull_prompt("customer-support-bot:production")
 # 특정 커밋 해시로 불러오기 (완전한 재현성)
 # exact_prompt = client.pull_prompt("customer-support-bot:<commit-hash>")
 
-
 # === 프롬프트 업데이트 워크플로 ===
 prompt_v2 = ChatPromptTemplate.from_messages([
     ("system", (
@@ -293,6 +337,21 @@ client.push_prompt(
 ```
 
 이렇게 하면 프로덕션 코드는 항상 `customer-support-bot:production` 태그를 참조하므로, 새 프롬프트 버전을 push해도 프로덕션에 즉시 영향을 주지 않습니다. 평가를 통과한 후에만 `production` 태그를 이동시키는 것이죠. CI/CD 파이프라인의 배포 단계에서 이 승격을 자동화할 수 있습니다:
+
+> 📊 **그림 4**: 프롬프트 버전 관리와 승격 워크플로
+
+```mermaid
+stateDiagram-v2
+    [*] --> 개발: 프롬프트 작성
+    개발 --> Staging: push(tags='staging')
+    Staging --> CI평가: evaluate() 실행
+    CI평가 --> 게이트판정: 점수 검증
+    게이트판정 --> Production: 통과 - 태그 승격
+    게이트판정 --> 개발: 실패 - 수정 필요
+    Production --> AB테스트: 10% 카나리
+    AB테스트 --> 전체배포: 메트릭 안정
+    AB테스트 --> 개발: 메트릭 저하 - 롤백
+```
 
 ```python
 # scripts/promote_prompt.py
@@ -326,7 +385,6 @@ from langchain_core.runnables import RunnableConfig
 
 client = Client()
 model = ChatOpenAI(model="gpt-4o", temperature=0)
-
 
 class ABTestRouter:
     """프로덕션 트래픽을 두 프롬프트 버전에 분배하고 결과를 추적"""
@@ -363,22 +421,32 @@ class ABTestRouter:
             "variant": variant,
         }
 
-
 # 10% 트래픽만 새 프롬프트(B)로 라우팅
 router = ABTestRouter("customer-support-bot", ratio_b=0.1)
 ```
 
 LangSmith 대시보드에서 `ab_variant` 메타데이터로 필터링하면, 두 변형의 품질 메트릭을 실시간으로 비교할 수 있습니다. 카나리 배포 전략은 다음과 같이 진행합니다:
 
+> 📊 **그림 5**: 카나리 배포 단계별 트래픽 전환
+
+```mermaid
+flowchart LR
+    S1["1단계<br/>10% B, 90% A"] -->|24시간 모니터링| S2["2단계<br/>50% B, 50% A"]
+    S2 -->|품질 확인| S3["3단계<br/>100% B"]
+    S3 --> DONE["production 태그 승격"]
+    S1 -->|품질 저하| ROLL["롤백<br/>100% A 유지"]
+    S2 -->|품질 저하| ROLL
+```
+
 1. **10% 트래픽**으로 시작 → 메트릭 모니터링
 2. 24시간 이상 품질 저하 없으면 → **50%로 확대**
 3. 최종 확인 후 → **100% 전환** (production 태그 승격)
 
-[16.4](16-콜백과-관찰-가능성/04-llm-애플리케이션-평가.md)에서 배운 `evaluate()`로 오프라인 비교를 먼저 수행하고, 그 결과가 유망할 때 A/B 테스트로 실제 트래픽 검증에 들어가는 것이 실무 워크플로입니다.
+[16.4](ch16/session4.md)에서 배운 `evaluate()`로 오프라인 비교를 먼저 수행하고, 그 결과가 유망할 때 A/B 테스트로 실제 트래픽 검증에 들어가는 것이 실무 워크플로입니다.
 
 ### 개념 6: pytest + LangSmith CI 통합
 
-LangSmith는 pytest와의 네이티브 통합을 제공합니다. `@pytest.mark.langsmith` 데코레이터를 붙이면, 테스트 실행 결과가 LangSmith 실험(Experiment)으로 자동 기록되어 CI에서의 품질 추적이 가능합니다. [16.4](16-콜백과-관찰-가능성/04-llm-애플리케이션-평가.md)에서 배운 평가자와 데이터셋을 CI 환경에서 활용하는 방법을 살펴봅시다.
+LangSmith는 pytest와의 네이티브 통합을 제공합니다. `@pytest.mark.langsmith` 데코레이터를 붙이면, 테스트 실행 결과가 LangSmith 실험(Experiment)으로 자동 기록되어 CI에서의 품질 추적이 가능합니다. [16.4](ch16/session4.md)에서 배운 평가자와 데이터셋을 CI 환경에서 활용하는 방법을 살펴봅시다.
 
 ```python
 # tests/evals/test_qa_chain.py
@@ -401,7 +469,6 @@ prompt = ChatPromptTemplate.from_template(
 )
 chain = prompt | model | StrOutputParser()
 
-
 @pytest.mark.langsmith
 def test_factual_accuracy():
     """사실적 정확성 검증 — CI에서 자동 실행"""
@@ -415,7 +482,6 @@ def test_factual_accuracy():
     })
     
     assert "변경" in response or "mutable" in response.lower()
-
 
 @pytest.mark.langsmith
 def test_harmful_content_rejection():
@@ -445,7 +511,7 @@ def test_harmful_content_rejection():
 
 아래는 위에서 배운 개념들을 통합한 **CI/CD 중심 LLMOps 파이프라인** 실습입니다. 프롬프트 버전 관리, CI 기반 배포 게이트, A/B 테스트 라우팅을 하나의 흐름으로 체험해봅니다.
 
-> 📌 **전제**: [16.4](16-콜백과-관찰-가능성/04-llm-애플리케이션-평가.md)에서 다룬 LangSmith 데이터셋 생성(`create_dataset`/`create_examples`)과 커스텀 평가자 작성 방법을 이미 알고 있다고 가정합니다. 이번 실습에서는 이미 존재하는 데이터셋과 평가자를 **CI/CD 파이프라인에 통합**하는 데 집중합니다.
+> 📌 **전제**: [16.4](ch16/session4.md)에서 다룬 LangSmith 데이터셋 생성(`create_dataset`/`create_examples`)과 커스텀 평가자 작성 방법을 이미 알고 있다고 가정합니다. 이번 실습에서는 이미 존재하는 데이터셋과 평가자를 **CI/CD 파이프라인에 통합**하는 데 집중합니다.
 
 ```python
 """
@@ -507,7 +573,6 @@ DATASET_NAME = "llmops-demo-dataset"  # 기존 데이터셋 사용
 staging_prompt = client.pull_prompt(f"{PROMPT_NAME}:staging")
 chain_v2 = staging_prompt | model | StrOutputParser()
 
-
 def keyword_accuracy(run: Run, example: Example) -> dict:
     """키워드 기반 정확도 (Ch16.4의 평가자를 CI용으로 재사용)"""
     prediction = run.outputs.get("output", "").lower()
@@ -516,7 +581,6 @@ def keyword_accuracy(run: Run, example: Example) -> dict:
     matches = sum(1 for w in ref_words if w in prediction)
     score = matches / len(ref_words) if ref_words else 0
     return {"key": "keyword_accuracy", "score": min(score, 1.0)}
-
 
 print("\n📊 staging(v2) 프롬프트 CI 평가 실행 중...")
 results_v2 = evaluate(
@@ -604,7 +668,7 @@ else:
 
 > 💡 **알고 계셨나요?**: LangSmith의 pytest 통합은 2024년 말에 도입된 비교적 새로운 기능입니다. 이전에는 `evaluate()` 함수를 별도 스크립트로 실행해야 했지만, 이제는 기존 pytest 워크플로에 `@pytest.mark.langsmith` 데코레이터만 추가하면 LLM 평가와 기존 단위 테스트를 동일한 `pytest` 명령으로 실행할 수 있게 되었습니다.
 
-> 🔥 **실무 팁**: CI 파이프라인에서 LLM 평가를 실행할 때는 **비용에 주의**하세요. 모든 PR마다 100개 테스트 케이스 × LLM-as-Judge 평가를 돌리면 비용이 빠르게 증가합니다. 실무에서는 프롬프트 파일(`src/prompts/**`)이 변경된 PR에서만 평가를 실행하고, 나이틀리(nightly) 빌드에서 전체 평가를 수행하는 전략이 효과적입니다. 앞서 [20.2 비용 최적화](./02-비용-최적화.md)에서 배운 모델 라우팅을 평가자에도 적용하면 비용을 절약할 수 있습니다.
+> 🔥 **실무 팁**: CI 파이프라인에서 LLM 평가를 실행할 때는 **비용에 주의**하세요. 모든 PR마다 100개 테스트 케이스 × LLM-as-Judge 평가를 돌리면 비용이 빠르게 증가합니다. 실무에서는 프롬프트 파일(`src/prompts/**`)이 변경된 PR에서만 평가를 실행하고, 나이틀리(nightly) 빌드에서 전체 평가를 수행하는 전략이 효과적입니다. 앞서 [20.2 비용 최적화](ch20/session2.md)에서 배운 모델 라우팅을 평가자에도 적용하면 비용을 절약할 수 있습니다.
 
 > 🔥 **실무 팁**: A/B 테스트에서 가장 중요한 것은 **통계적 유의성**입니다. 3-5개 테스트 케이스로는 어떤 버전이 더 좋은지 판단할 수 없습니다. 최소 30-50개 이상의 다양한 테스트 케이스를 사용하고, 카나리 배포에서는 충분한 기간(최소 24-48시간) 동안 메트릭을 모니터링하세요. LangSmith 대시보드에서 `ab_variant` 메타데이터로 필터링하여 두 변형의 분포를 반드시 비교하세요.
 
@@ -623,7 +687,7 @@ else:
 
 ## 다음 섹션 미리보기
 
-이번 섹션에서 CI/CD 파이프라인과 LLMOps 전략을 통해 LangChain 애플리케이션을 **안전하게 배포하고 지속적으로 개선하는 방법**을 배웠습니다. 다음 섹션 [20.5 LangChain 생태계의 미래](./05-미래-전망과-지속적-학습.md)에서는 한 발 물러서 큰 그림을 바라봅니다. LangChain 프레임워크의 진화 방향, LangGraph의 멀티 에이전트 패러다임, 그리고 LLM 애플리케이션 개발의 미래 트렌드를 조망하며 이 코스를 마무리합니다.
+이번 섹션에서 CI/CD 파이프라인과 LLMOps 전략을 통해 LangChain 애플리케이션을 **안전하게 배포하고 지속적으로 개선하는 방법**을 배웠습니다. 다음 섹션 [20.5 LangChain 생태계의 미래](ch20/session5.md)에서는 한 발 물러서 큰 그림을 바라봅니다. LangChain 프레임워크의 진화 방향, LangGraph의 멀티 에이전트 패러다임, 그리고 LLM 애플리케이션 개발의 미래 트렌드를 조망하며 이 코스를 마무리합니다.
 
 ## 참고 자료
 
@@ -636,7 +700,7 @@ else:
 
 ---
 ### 🔗 Related Sessions
-- [langsmith](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [cost_monitor](./02-비용-최적화.md) (prerequisite)
-- [ainvoke_abatch](./03-확장성과-성능.md) (prerequisite)
-- [prompt_injection](./01-프로덕션-보안.md) (prerequisite)
+- [langsmith](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [cost_monitor](../20-프로덕션-베스트-프랙티스와-미래-전망/02-비용-최적화.md) (prerequisite)
+- [ainvoke_abatch](../20-프로덕션-베스트-프랙티스와-미래-전망/03-확장성과-성능.md) (prerequisite)
+- [prompt_injection](../20-프로덕션-베스트-프랙티스와-미래-전망/01-프로덕션-보안.md) (prerequisite)

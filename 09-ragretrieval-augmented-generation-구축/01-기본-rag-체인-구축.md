@@ -44,6 +44,24 @@ RAG 파이프라인은 크게 **인덱싱(Indexing)**과 **검색+생성(Retriev
 
 1~3단계는 **인덱싱** 과정으로, 보통 사전에 한 번 실행합니다. 4~5단계가 사용자 질문이 들어올 때마다 실행되는 **런타임** 과정이에요.
 
+> 📊 **그림 1**: RAG 파이프라인 5단계 — 인덱싱과 런타임의 구분
+
+```mermaid
+flowchart LR
+    subgraph 인덱싱["인덱싱 (사전 준비)"]
+        A["1. 로드<br/>문서 읽기"] --> B["2. 분할<br/>청크 생성"]
+        B --> C["3. 임베딩+저장<br/>벡터 DB"]
+    end
+    subgraph 런타임["런타임 (질문 시)"]
+        D["4. 검색<br/>유사 청크 탐색"] --> E["5. 생성<br/>LLM 답변"]
+    end
+    C -.->|"벡터 DB 조회"| D
+    F["사용자 질문"] --> D
+```
+
+
+![RAG 파이프라인 시퀀스 다이어그램 — 문서 수집(인덱싱)과 사용자 질의/검색/응답 생성의 전체 흐름](../images/ch09/rag-pipeline-ingest-query-flow-b-002ef890.png "NVIDIA Technical Blog — RAG 101: Demystifying Retrieval-Augmented Generation Pipelines")
+
 지금까지 Ch6~Ch8에서 1~4단계를 개별적으로 배웠습니다. 이번 섹션의 핵심은 이 모든 단계를 **하나의 체인으로 연결하는 5단계(생성)**를 추가하는 것입니다. 즉, 지금까지 배운 퍼즐 조각들을 하나로 맞추는 시간이에요.
 
 ```python
@@ -92,6 +110,19 @@ combine_docs_chain = create_stuff_documents_chain(llm=llm, prompt=prompt)
 
 여기서 핵심은 프롬프트에 `{context}`라는 변수가 반드시 포함되어야 한다는 점입니다. 이 변수에 검색된 문서들이 합쳐져서 들어가게 됩니다.
 
+> 📊 **그림 2**: create_stuff_documents_chain의 동작 흐름
+
+```mermaid
+flowchart LR
+    D1["문서 1"] --> S["Stuff<br/>문서 결합"]
+    D2["문서 2"] --> S
+    D3["문서 3"] --> S
+    S --> P["프롬프트 템플릿<br/>context + input"]
+    P --> L["LLM"]
+    L --> A["답변"]
+```
+
+
 > ⚠️ **흔한 오해**: `create_stuff_documents_chain`이 "검색까지 해주는 것"이라고 생각하기 쉬운데요, 이 체인은 **이미 검색된 문서를 프롬프트에 합치는 역할만** 합니다. 검색은 다음에 배울 `create_retrieval_chain`이 담당해요.
 
 ### 개념 3: create_retrieval_chain — 검색 + 생성을 하나로
@@ -117,6 +148,30 @@ print(result["context"])  # 검색된 문서 리스트
 ```
 
 `create_retrieval_chain`의 출력은 딕셔너리로, `answer` 키에 최종 답변이, `context` 키에 검색된 문서 리스트가 담깁니다. 검색 근거를 함께 확인할 수 있어 디버깅과 투명성 확보에 유용하죠.
+
+> 📊 **그림 3**: create_retrieval_chain — 검색에서 답변까지의 전체 흐름
+
+```mermaid
+sequenceDiagram
+    participant U as 사용자
+    participant RC as create_retrieval_chain
+    participant R as Retriever
+    participant VS as 벡터 스토어
+    participant SC as stuff_documents_chain
+    participant LLM as LLM
+
+    U->>RC: invoke(input: 질문)
+    RC->>R: 질문 전달
+    R->>VS: 유사도 검색
+    VS-->>R: 관련 문서 k개
+    R-->>RC: 문서 리스트
+    RC->>SC: context + input
+    SC->>LLM: 프롬프트 완성
+    LLM-->>SC: 답변 생성
+    SC-->>RC: answer
+    RC-->>U: answer + context
+```
+
 
 ### 개념 4: LCEL로 직접 RAG 체인 만들기
 
@@ -153,6 +208,22 @@ print(answer)
    - `question`: 원본 질문을 그대로 통과시킴
 2. 결과가 딕셔너리 `{"context": "...", "question": "..."}`로 프롬프트에 전달됩니다
 3. 프롬프트 → LLM → 출력 파서를 거쳐 최종 답변이 나옵니다
+
+> 📊 **그림 4**: LCEL RAG 체인의 내부 구조 — RunnableParallel 병렬 처리
+
+```mermaid
+flowchart TD
+    Q["사용자 질문"] --> RP["RunnableParallel"]
+    RP --> B1["retriever<br/>벡터 검색"]
+    RP --> B2["RunnablePassthrough<br/>질문 그대로 전달"]
+    B1 --> FD["format_docs<br/>문서 텍스트 결합"]
+    FD --> PR["프롬프트 템플릿<br/>context + question"]
+    B2 --> PR
+    PR --> LLM["LLM"]
+    LLM --> OP["StrOutputParser"]
+    OP --> ANS["최종 답변 (문자열)"]
+```
+
 
 > 🔥 **실무 팁**: 헬퍼 함수(`create_retrieval_chain`)는 빠른 프로토타이핑에, LCEL 직접 구성은 커스터마이징이 필요할 때 사용하세요. 예를 들어 검색 결과를 재랭킹하거나, 중간에 로깅을 넣거나, 조건 분기를 추가하려면 LCEL 방식이 훨씬 유연합니다.
 
@@ -450,6 +521,8 @@ A: RAG 파이프라인은 인덱싱(문서 로드, 분할, 임베딩 저장)과 
 
 Lewis 팀은 영감을 **정보 검색(Information Retrieval)** 분야에서 얻었습니다. "모델이 모든 걸 외우는 대신, 필요할 때 참고서를 찾아보게 하면 어떨까?" 이렇게 탄생한 것이 바로 RAG — **Retrieval-Augmented Generation**입니다.
 
+![RAG 아키텍처 — 사용자 질의가 Knowledge Sources에서 관련 정보를 검색한 뒤 LLM에 전달되어 응답을 생성하는 5단계 흐름](../images/ch09/jumpstart-fm-rag-bb93f8e0.jpg "AWS — What is Retrieval-Augmented Generation")
+
 2020년 NeurIPS에 발표된 논문 *"Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks"*에서, 그들은 **사전 학습된 seq2seq 모델**(생성기)과 **위키피디아의 Dense Passage Retrieval 인덱스**(검색기)를 결합했습니다. 결과는 놀라웠는데요 — Open-domain QA, 사실 검증, 슬롯 채우기 등 지식 집약적 과제에서 기존 방식을 크게 앞질렀거든요.
 
 흥미로운 점은 "RAG"라는 이름 자체입니다. Lewis는 인터뷰에서 "Retrieval-Augmented Generation이라는 이름이 기술을 정확히 설명한다고 생각했다"고 말했는데, 이 직관적인 이름 덕분에 RAG는 빠르게 업계 표준 용어로 자리잡았습니다. 불과 몇 년 만에 RAG는 특정 논문의 기법을 넘어, LLM 애플리케이션 아키텍처의 **핵심 패러다임**이 되었습니다.
@@ -465,6 +538,33 @@ Lewis 팀은 영감을 **정보 검색(Information Retrieval)** 분야에서 얻
 | **Refine** | 문서를 순차적으로 읽으며 답변 개선 | 점진적 개선 | 가장 느림 |
 
 "Stuff"는 말 그대로 문서를 프롬프트에 "꾹꾹 눌러담는" 가장 단순한 전략입니다. 대부분의 RAG 시스템에서는 검색 결과가 3~5개 청크 정도로 제한되어 토큰 한도를 넘기지 않으므로, stuff 전략이 기본으로 사용됩니다.
+
+> 📊 **그림 5**: 세 가지 문서 결합 전략 비교
+
+```mermaid
+flowchart TD
+    subgraph STUFF["Stuff 전략"]
+        SA["문서 1+2+3"] --> SB["LLM 1회 호출"]
+        SB --> SC["답변"]
+    end
+    subgraph MR["Map-Reduce 전략"]
+        MA1["문서 1"] --> MB1["LLM 호출"]
+        MA2["문서 2"] --> MB2["LLM 호출"]
+        MA3["문서 3"] --> MB3["LLM 호출"]
+        MB1 --> MC["결과 합산"]
+        MB2 --> MC
+        MB3 --> MC
+        MC --> MD["LLM 최종 호출"]
+    end
+    subgraph RF["Refine 전략"]
+        RA1["문서 1"] --> RB1["LLM 호출<br/>초안 생성"]
+        RB1 --> RA2["문서 2 + 초안"]
+        RA2 --> RB2["LLM 호출<br/>답변 개선"]
+        RB2 --> RA3["문서 3 + 개선안"]
+        RA3 --> RB3["LLM 호출<br/>최종 답변"]
+    end
+```
+
 
 ## 흔한 오해와 팁
 
@@ -507,9 +607,9 @@ Lewis 팀은 영감을 **정보 검색(Information Retrieval)** 분야에서 얻
 
 ---
 ### 🔗 Related Sessions
-- [lcel](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [runnable](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [embedding](07-임베딩과-벡터-스토어/01-텍스트-임베딩-이해.md) (prerequisite)
-- [chain](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [document_loader](06-문서-로더와-텍스트-분할/01-문서-로더-기초.md) (prerequisite)
-- [vector_store](07-임베딩과-벡터-스토어/03-벡터-스토어-구축---faiss와-chroma.md) (prerequisite)
+- [lcel](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [runnable](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [embedding](../07-임베딩과-벡터-스토어/01-텍스트-임베딩-이해.md) (prerequisite)
+- [chain](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [document_loader](../06-문서-로더와-텍스트-분할/01-문서-로더-기초.md) (prerequisite)
+- [vector_store](../07-임베딩과-벡터-스토어/03-벡터-스토어-구축---faiss와-chroma.md) (prerequisite)

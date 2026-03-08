@@ -16,6 +16,27 @@
 
 ## 왜 알아야 할까?
 
+> 📊 **그림 1**: LCEL 체인의 전체 구조 — 컴포넌트를 파이프로 연결하고 다양한 방식으로 실행
+
+```mermaid
+flowchart TD
+    subgraph 구성단계["체인 구성 (파이프 연산자)"]
+        P["PromptTemplate"] -->|"출력: PromptValue"| M["ChatModel"]
+        M -->|"출력: AIMessage"| O["OutputParser"]
+    end
+    subgraph 실행단계["실행 방식 선택"]
+        I["invoke<br/>단일 입력 처리"]
+        S["stream<br/>실시간 스트리밍"]
+        B["batch<br/>병렬 대량 처리"]
+        A["ainvoke / astream / abatch<br/>비동기 실행"]
+    end
+    구성단계 --> I
+    구성단계 --> S
+    구성단계 --> B
+    구성단계 --> A
+```
+
+
 앞선 챕터들에서 우리는 프롬프트 템플릿, Chat Model, 출력 파서를 각각 개별적으로 다뤘습니다. 하지만 실제 애플리케이션에서는 이 컴포넌트들을 **하나의 파이프라인으로 엮어야** 하죠. 예를 들어 "사용자 질문을 받아 → 프롬프트에 채워 넣고 → 모델에 전달하고 → 결과를 파싱한다"는 흐름을 매번 수동으로 작성한다면 어떨까요?
 
 ```python
@@ -37,6 +58,34 @@ LCEL은 2023년 3분기에 도입된 이후 LangChain의 **공식 권장 체인 
 ## 핵심 개념
 
 ### 개념 1: Runnable 프로토콜 — 모든 컴포넌트의 공통 언어
+
+> 📊 **그림 2**: Runnable 프로토콜 — 모든 컴포넌트가 동일한 인터페이스를 구현
+
+```mermaid
+classDiagram
+    class Runnable {
+        <<protocol>>
+        +invoke(input) output
+        +stream(input) Iterator
+        +batch(inputs) list
+        +ainvoke(input) output
+        +astream(input) AsyncIterator
+        +abatch(inputs) list
+    }
+    class ChatPromptTemplate {
+        +invoke(dict) PromptValue
+    }
+    class ChatOpenAI {
+        +invoke(PromptValue) AIMessage
+    }
+    class StrOutputParser {
+        +invoke(AIMessage) str
+    }
+    Runnable <|-- ChatPromptTemplate
+    Runnable <|-- ChatOpenAI
+    Runnable <|-- StrOutputParser
+```
+
 
 > 💡 **비유**: USB 규격을 떠올려 보세요. 키보드, 마우스, 외장하드 — 모양도 기능도 다르지만, USB 포트에 꽂기만 하면 동작합니다. Runnable은 LangChain의 USB 규격과 같습니다. 프롬프트, 모델, 파서 등 서로 다른 컴포넌트들이 **동일한 인터페이스**를 구현하기 때문에, 어떤 순서로든 자유롭게 연결할 수 있죠.
 
@@ -74,6 +123,20 @@ print(text)
 ```
 
 ### 개념 2: 파이프 연산자(|) — 레고 블록처럼 연결하기
+
+> 📊 **그림 5**: 파이프 연산자의 내부 동작 — __or__ 메서드가 RunnableSequence를 생성
+
+```mermaid
+flowchart TD
+    subgraph 코드["prompt | model | parser"]
+        S1["prompt.__or__(model)"] --> R1["RunnableSequence<br/>(prompt, model)"]
+        R1 --> S2["RunnableSequence.__or__(parser)"]
+        S2 --> R2["RunnableSequence<br/>(prompt, model, parser)"]
+    end
+    R2 -->|".invoke() 호출 시"| E["순차 실행 시작"]
+    style R2 fill:#fff3e0
+```
+
 
 > 💡 **비유**: 공장의 컨베이어 벨트를 상상해 보세요. 원재료가 들어가면 첫 번째 기계가 가공하고, 그 결과물이 벨트를 타고 두 번째 기계로 이동하고, 또 다음 기계로... 최종 제품이 나올 때까지 자동으로 흘러갑니다. LCEL의 파이프 연산자(`|`)가 바로 이 컨베이어 벨트입니다. 각 컴포넌트의 출력이 자동으로 다음 컴포넌트의 입력이 되죠.
 
@@ -145,6 +208,18 @@ print(type(result))
 
 데이터가 체인을 통과하는 흐름을 정리하면:
 
+> 📊 **그림 3**: invoke 실행 시 데이터 변환 흐름 — 각 컴포넌트를 거치며 타입이 변환됨
+
+```mermaid
+flowchart LR
+    A["dict<br/>country: '프랑스'"] -->|"prompt.invoke()"| B["ChatPromptValue<br/>HumanMessage"]
+    B -->|"model.invoke()"| C["AIMessage<br/>content: '파리...'"]
+    C -->|"parser.invoke()"| D["str<br/>'프랑스의 수도는<br/>파리입니다.'"]
+    style A fill:#e1f5fe
+    style D fill:#e8f5e9
+```
+
+
 ```
 {"country": "프랑스"}
     ↓ prompt.invoke()
@@ -175,6 +250,29 @@ print()  # 줄바꿈
 LCEL 체인에서 스트리밍이 특히 강력한 이유는, 체인 내의 **각 컴포넌트가 자동으로 스트리밍을 지원**하기 때문입니다. 프롬프트와 파서는 입력을 그대로 통과시키고, 모델만 토큰 단위로 스트리밍하면 전체 체인이 자연스럽게 스트리밍됩니다.
 
 ### 개념 5: batch — 대량 처리의 효율성
+
+> 📊 **그림 4**: batch vs 순차 invoke — batch는 ThreadPool로 병렬 실행하여 처리 시간 단축
+
+```mermaid
+sequenceDiagram
+    participant U as 호출자
+    participant C as Chain
+    rect rgb(255, 235, 238)
+        Note over U,C: 순차 invoke (느림)
+        U->>C: invoke('한국')
+        C-->>U: 결과 1
+        U->>C: invoke('미국')
+        C-->>U: 결과 2
+        U->>C: invoke('독일')
+        C-->>U: 결과 3
+    end
+    rect rgb(232, 245, 233)
+        Note over U,C: batch (빠름 - 병렬)
+        U->>C: batch('한국','미국','독일')
+        C-->>U: 결과 1, 2, 3 동시 반환
+    end
+```
+
 
 여러 입력을 한꺼번에 처리해야 할 때 `batch`를 사용합니다. 내부적으로 **스레드 풀**을 사용하여 병렬 실행하므로 순차 `invoke`보다 훨씬 빠릅니다:
 
@@ -420,7 +518,7 @@ class Runnable:
 
 ---
 ### 🔗 Related Sessions
-- [langchain](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [prompt_template](03-프롬프트-엔지니어링과-템플릿/01-chatprompttemplate-기초.md) (prerequisite)
-- [chain](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [output_parser](04-출력-파서와-구조화된-출력/01-출력-파서-기초.md) (prerequisite)
+- [langchain](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [prompt_template](../03-프롬프트-엔지니어링과-템플릿/01-chatprompttemplate-기초.md) (prerequisite)
+- [chain](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [output_parser](../04-출력-파서와-구조화된-출력/01-출력-파서-기초.md) (prerequisite)

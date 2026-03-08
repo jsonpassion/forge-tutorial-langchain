@@ -4,7 +4,7 @@
 
 ## 개요
 
-이 섹션에서는 LangSmith의 핵심 기능인 프로젝트와 실행(Run) 관리, 트레이스 필터링과 검색, 프로그래밍 방식의 피드백 수집, 그리고 주석(Annotation) 큐를 깊이 있게 다룹니다. 앞서 [16.1: 콜백 시스템 이해](./01-콜백-시스템-이해.md)와 [16.2: 커스텀 콜백 핸들러](./02-커스텀-콜백-핸들러.md)에서 콜백을 통해 실행 이벤트를 추적하는 방법을 배웠다면, 이번 섹션에서는 그 데이터가 **LangSmith 플랫폼에서 어떻게 구조화되고, 검색되며, 평가에 활용되는지** 전체 그림을 완성합니다.
+이 섹션에서는 LangSmith의 핵심 기능인 프로젝트와 실행(Run) 관리, 트레이스 필터링과 검색, 프로그래밍 방식의 피드백 수집, 그리고 주석(Annotation) 큐를 깊이 있게 다룹니다. 앞서 [16.1: 콜백 시스템 이해](ch16/session_16_1.md)와 [16.2: 커스텀 콜백 핸들러](ch16/session_16_2.md)에서 콜백을 통해 실행 이벤트를 추적하는 방법을 배웠다면, 이번 섹션에서는 그 데이터가 **LangSmith 플랫폼에서 어떻게 구조화되고, 검색되며, 평가에 활용되는지** 전체 그림을 완성합니다.
 
 **선수 지식**: 콜백 시스템의 동작 원리(16.1), 커스텀 콜백 핸들러 작성법(16.2), LangChain 기본 체인 구성(Ch5 LCEL)
 **학습 목표**:
@@ -38,6 +38,22 @@ LangSmith의 데이터 모델은 세 가지 핵심 계층으로 이루어져 있
 | **Run** | 트레이스 내 개별 실행 단계 (LLM, 체인, 도구 등) | 책의 각 장 |
 
 추가로 **Thread**라는 개념도 있는데요, 대화형 애플리케이션에서 여러 턴(turn)의 트레이스를 하나의 대화 세션으로 묶어주는 역할을 합니다.
+
+> 📊 **그림 1**: LangSmith 데이터 모델의 계층 구조
+
+```mermaid
+graph TD
+    P["Project<br/>my-chatbot-v2"] --> T1["Trace 1<br/>사용자 질문 요청"]
+    P --> T2["Trace 2<br/>문서 검색 요청"]
+    T1 --> R1["Run: Chain<br/>전체 체인 실행"]
+    R1 --> R2["Run: Prompt<br/>프롬프트 생성"]
+    R1 --> R3["Run: LLM<br/>GPT-4o 호출"]
+    R1 --> R4["Run: Parser<br/>출력 파싱"]
+    T2 --> R5["Run: Retriever<br/>벡터 검색"]
+    T2 --> R6["Run: LLM<br/>답변 생성"]
+    TH["Thread<br/>대화 세션"] -.->|"묶음"| T1
+    TH -.->|"묶음"| T2
+```
 
 프로젝트는 환경 변수로 간편하게 설정할 수 있습니다:
 
@@ -84,6 +100,20 @@ for run in root_runs:
 > 💡 **비유**: 도서관의 책에 **분류 스티커**와 **색인 카드**를 붙이는 것과 같습니다. 태그(Tag)는 "소설", "추리" 같은 분류 스티커고, 메타데이터(Metadata)는 "저자: 김작가, 출판년도: 2025" 같은 상세 정보가 적힌 색인 카드입니다.
 
 실행에 메타데이터와 태그를 추가하면 나중에 강력한 필터링이 가능해집니다. LangChain의 `config` 딕셔너리를 통해 런마다 메타데이터를 주입할 수 있거든요:
+
+> 📊 **그림 2**: 메타데이터와 태그가 런에 부착되는 흐름
+
+```mermaid
+flowchart LR
+    A["chain.invoke()"] --> B["config 전달"]
+    B --> M["metadata<br/>user_id, app_version,<br/>environment"]
+    B --> T["tags<br/>production, chatbot, v2.1"]
+    B --> N["run_name<br/>커스텀 이름"]
+    M --> R["LangSmith Run"]
+    T --> R
+    N --> R
+    R --> F["필터링 / 검색<br/>list_runs()에서 활용"]
+```
 
 ```python
 from langchain_openai import ChatOpenAI
@@ -193,6 +223,22 @@ for run in low_score_runs:
 
 > 💡 **비유**: 피드백은 음식점의 **별점 리뷰** 시스템과 같습니다. 각 리뷰(피드백)는 특정 방문(런)에 대해, 특정 기준(키)으로, 점수(스코어)와 코멘트를 남기는 구조입니다. "맛 4점, 서비스 5점, 분위기 3점"처럼 하나의 런에 여러 기준의 피드백을 붙일 수 있죠.
 
+> 📊 **그림 3**: 피드백 수집과 활용 흐름
+
+```mermaid
+flowchart TD
+    U["사용자 인터랙션"] --> C["Chain 실행"]
+    C --> R["Run 생성<br/>run_id 캡처"]
+    R --> F1["사용자 피드백<br/>key: user_score<br/>source: app"]
+    R --> F2["자동 평가<br/>key: auto_accuracy<br/>source: model"]
+    R --> F3["수정 제안<br/>key: correction<br/>correction: 올바른 출력"]
+    F1 --> S["LangSmith 저장"]
+    F2 --> S
+    F3 --> S
+    S --> Q["필터링 / 검색"]
+    S --> AQ["주석 큐 할당"]
+```
+
 LangSmith의 피드백은 `run_id`, `key`, `score` 세 가지 핵심 요소로 구성됩니다:
 
 ```python
@@ -275,6 +321,22 @@ print("피드백이 LangSmith에 기록되었습니다!")
 > 💡 **비유**: 주석 큐는 **서류 결재함**과 같습니다. 검토가 필요한 서류(런)를 결재함(큐)에 넣어두면, 결재자(어노테이터)가 순서대로 꺼내서 검토하고 의견(피드백)을 적는 거죠. 여러 결재함을 만들어 용도별로 분류할 수도 있고, 특정 조건의 서류만 자동으로 결재함에 들어가게 할 수도 있습니다.
 
 주석 큐는 **휴먼-인-더-루프(Human-in-the-Loop)** 품질 관리의 핵심입니다. LangSmith는 두 가지 스타일의 주석 큐를 지원합니다:
+
+> 📊 **그림 4**: 자동 품질 관리 파이프라인 (주석 큐 활용)
+
+```mermaid
+flowchart TD
+    PR["프로덕션 런"] --> TR["자동 분류<br/>auto_triage_runs()"]
+    TR -->|"error=True"| EQ["에러 검수 큐"]
+    TR -->|"user_score < 0.5"| QQ["품질 검수 큐"]
+    TR -->|"정상"| OK["통과"]
+    EQ --> REV1["어노테이터 검수"]
+    QQ --> REV2["어노테이터 검수"]
+    REV1 --> FB["피드백 작성<br/>correction, 점수"]
+    REV2 --> FB
+    FB --> IMP["프롬프트 / 체인 개선"]
+    IMP --> PR
+```
 
 1. **단일 런 주석 큐**: 한 번에 하나의 런을 검토하며 피드백을 작성
 2. **페어와이즈(Pairwise) 주석 큐**: 두 런을 나란히 비교하여 어떤 출력이 더 좋은지 판단 (A/B 테스트)
@@ -599,7 +661,7 @@ LangSmith는 이 세 기둥을 LLM 앱에 맞게 재해석하여, 피드백(Feed
 
 ## 다음 섹션 미리보기
 
-이번 섹션에서 LangSmith로 트레이스를 관리하고 피드백을 수집하는 방법을 배웠다면, 다음 섹션 **[16.4: LLM 애플리케이션 평가 파이프라인](./04-llm-애플리케이션-평가.md)**에서는 수집된 데이터를 활용해 **체계적인 평가(Evaluation)**를 수행하는 방법을 다룹니다. 데이터셋 생성, 자동화된 평가 메트릭, 그리고 LangSmith Evaluation 기능을 활용한 A/B 테스트까지 — 피드백 루프의 다음 단계로 나아갑니다.
+이번 섹션에서 LangSmith로 트레이스를 관리하고 피드백을 수집하는 방법을 배웠다면, 다음 섹션 **[16.4: LLM 애플리케이션 평가 파이프라인](ch16/session_16_4.md)**에서는 수집된 데이터를 활용해 **체계적인 평가(Evaluation)**를 수행하는 방법을 다룹니다. 데이터셋 생성, 자동화된 평가 메트릭, 그리고 LangSmith Evaluation 기능을 활용한 A/B 테스트까지 — 피드백 루프의 다음 단계로 나아갑니다.
 
 ## 참고 자료
 
@@ -612,9 +674,9 @@ LangSmith는 이 세 기둥을 LLM 앱에 맞게 재해석하여, 피드백(Feed
 
 ---
 ### 🔗 Related Sessions
-- [lcel](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [chain](01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
-- [callback_handler](./01-콜백-시스템-이해.md) (prerequisite)
-- [callback_propagation](./01-콜백-시스템-이해.md) (prerequisite)
-- [constructor_callback](./01-콜백-시스템-이해.md) (prerequisite)
-- [request_callback](./01-콜백-시스템-이해.md) (prerequisite)
+- [lcel](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [chain](../01-langchain-소개와-개발-환경-설정/01-llm-애플리케이션의-진화와-langchain.md) (prerequisite)
+- [callback_handler](../16-콜백과-관찰-가능성/01-콜백-시스템-이해.md) (prerequisite)
+- [callback_propagation](../16-콜백과-관찰-가능성/01-콜백-시스템-이해.md) (prerequisite)
+- [constructor_callback](../16-콜백과-관찰-가능성/01-콜백-시스템-이해.md) (prerequisite)
+- [request_callback](../16-콜백과-관찰-가능성/01-콜백-시스템-이해.md) (prerequisite)

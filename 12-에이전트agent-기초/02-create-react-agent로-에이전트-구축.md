@@ -4,7 +4,7 @@
 
 ## 개요
 
-이 섹션에서는 [세션 12.1: 에이전트 개념과 ReAct 패턴](./01-에이전트-개념과-react-패턴.md)에서 배운 ReAct 패턴 이론을 실제 코드로 구현합니다. `create_react_agent` 함수의 구조를 이해하고, ReAct 프롬프트 템플릿을 구성하며, `AgentExecutor`로 에이전트를 실행하는 전체 조립 과정을 익힙니다.
+이 섹션에서는 [세션 12.1: 에이전트 개념과 ReAct 패턴](ch12/session_12_1.md)에서 배운 ReAct 패턴 이론을 실제 코드로 구현합니다. `create_react_agent` 함수의 구조를 이해하고, ReAct 프롬프트 템플릿을 구성하며, `AgentExecutor`로 에이전트를 실행하는 전체 조립 과정을 익힙니다.
 
 **선수 지식**: 에이전트 개념과 ReAct 패턴(Thought→Action→Observation 루프), `@tool` 데코레이터 기본 사용법, LCEL 파이프라인 구성
 **학습 목표**:
@@ -14,6 +14,20 @@
 - 에이전트의 추론 과정을 관찰하고 동작 원리를 확인할 수 있다
 
 ## 왜 알아야 할까?
+
+> 📊 **그림 1**: create_react_agent 에이전트 조립 전체 구조
+
+```mermaid
+flowchart LR
+    LLM["LLM<br/>두뇌"] --> CRA["create_react_agent<br/>조립 공장"]
+    TOOLS["도구 리스트<br/>팔"] --> CRA
+    PROMPT["ReAct 프롬프트<br/>업무 매뉴얼"] --> CRA
+    CRA --> AGENT["Agent<br/>Runnable 객체"]
+    AGENT --> AE["AgentExecutor<br/>실행 엔진"]
+    TOOLS --> AE
+    AE --> RESULT["최종 응답"]
+```
+
 
 앞서 에이전트의 개념을 배웠지만, 실제로 동작하는 에이전트를 만드는 건 또 다른 문제죠. 마치 요리 레시피를 읽는 것과 직접 불 앞에 서는 것의 차이와 비슷합니다. `create_react_agent`는 LangChain에서 ReAct 에이전트를 만드는 가장 기본적인 방법인데요, 이 함수 하나를 제대로 이해하면 LLM에게 "생각하고 행동하는" 능력을 부여하는 전체 구조가 명확해집니다.
 
@@ -133,11 +147,27 @@ print(result["output"])
 
 `AgentExecutor`가 하는 일을 한 마디로 정리하면: **"에이전트에게 반복적으로 생각-행동-관찰 루프를 돌리되, 안전하게 멈출 수 있도록 관리한다"**입니다.
 
+> 📊 **그림 2**: AgentExecutor의 ReAct 루프 실행 흐름
+
+```mermaid
+flowchart TD
+    START["사용자 질문 입력"] --> THINK["Thought<br/>LLM이 생각"]
+    THINK --> DECIDE{"최종 답변<br/>가능?"}
+    DECIDE -->|"아니오"| ACTION["Action<br/>도구 선택 + 입력 결정"]
+    ACTION --> EXEC["도구 실행"]
+    EXEC --> OBS["Observation<br/>도구 실행 결과"]
+    OBS --> CHECK{"max_iterations<br/>초과?"}
+    CHECK -->|"아니오"| THINK
+    CHECK -->|"예"| STOP["강제 종료"]
+    DECIDE -->|"예"| FINAL["Final Answer<br/>최종 답변 반환"]
+```
+
+
 `verbose=True`를 설정하면 에이전트의 Thought, Action, Observation이 콘솔에 그대로 출력되어 내부 동작을 실시간으로 확인할 수 있습니다. 개발과 디버깅 단계에서는 항상 켜두세요.
 
 `max_iterations`는 도구 호출 최대 횟수로, 에이전트가 답을 찾지 못하고 끝없이 반복하는 것을 방지합니다. 기본적으로 5~15 사이가 적당합니다.
 
-`AgentExecutor`에는 이 외에도 에러 처리(`handle_parsing_errors`), 실행 시간 제한(`max_execution_time`), 조기 종료 방식(`early_stopping_method`), 중간 단계 반환(`return_intermediate_steps`) 등 다양한 제어 파라미터가 있습니다. 이들의 상세 동작과 프로덕션 환경 설정은 [다음 세션: AgentExecutor 설정과 제어](./03-agentexecutor-설정과-제어.md)에서 깊이 있게 다루겠습니다.
+`AgentExecutor`에는 이 외에도 에러 처리(`handle_parsing_errors`), 실행 시간 제한(`max_execution_time`), 조기 종료 방식(`early_stopping_method`), 중간 단계 반환(`return_intermediate_steps`) 등 다양한 제어 파라미터가 있습니다. 이들의 상세 동작과 프로덕션 환경 설정은 [다음 세션: AgentExecutor 설정과 제어](ch12/session_12_3.md)에서 깊이 있게 다루겠습니다.
 
 ### 개념 4: 전체 조립 — LLM + 도구 + 프롬프트 + 실행기
 
@@ -222,6 +252,39 @@ print(result["output"])
 ## 실습: 직접 해보기
 
 이번 실습에서는 여러 도구를 갖춘 "만능 비서 에이전트"를 만들어 봅시다. 날씨 조회, 계산, 단위 변환까지 할 수 있는 에이전트입니다. 에이전트가 질문에 따라 어떤 도구를 자율적으로 선택하는지 관찰하는 것이 핵심입니다.
+
+> 📊 **그림 3**: 복합 질문 처리 시 에이전트의 도구 호출 순서 (테스트 2 예시)
+
+```mermaid
+sequenceDiagram
+    participant U as 사용자
+    participant AE as AgentExecutor
+    participant LLM as LLM
+    participant W as get_weather
+    participant C as calculator
+    participant F as celsius_to_fahrenheit
+    U->>AE: 서울과 도쿄 기온 차이 + 화씨 변환
+    AE->>LLM: Thought 생성
+    LLM-->>AE: Action: get_weather(서울)
+    AE->>W: 서울
+    W-->>AE: 맑음, 22도C
+    AE->>LLM: Observation 전달
+    LLM-->>AE: Action: get_weather(도쿄)
+    AE->>W: 도쿄
+    W-->>AE: 맑음, 24도C
+    AE->>LLM: Observation 전달
+    LLM-->>AE: Action: calculator(24-22)
+    AE->>C: 24 - 22
+    C-->>AE: 2
+    AE->>LLM: Observation 전달
+    LLM-->>AE: Action: celsius_to_fahrenheit(22)
+    AE->>F: 22
+    F-->>AE: 71.6도F
+    AE->>LLM: Observation 전달
+    LLM-->>AE: Final Answer
+    AE-->>U: 최종 답변 반환
+```
+
 
 ```python
 import os
@@ -395,6 +458,9 @@ Final Answer: 서울(22°C)과 도쿄(24°C)의 기온 차이는 2°C이며, 서
 
 `create_react_agent`에서 사용하는 프롬프트 형식은 2022년 Shunyu Yao 등이 발표한 논문 *"ReAct: Synergizing Reasoning and Acting in Language Models"*에서 비롯되었습니다. 이 논문의 핵심 통찰은 놀라울 정도로 단순했는데요 — LLM에게 "생각을 먼저 말해봐(Thought)"라고 시킨 뒤 "그러면 뭘 해야 할까(Action)?"라고 물으면, LLM이 훨씬 정확하게 도구를 선택한다는 것이었습니다.
 
+![ReAct 논문 Figure 1 — Standard, Chain-of-Thought, Act-only, ReAct 네 가지 프롬프팅 방식 비교](../images/ch12/Screen_Shot_2022-11-08_at_8_53_49_AM-02c86fae.png "Google Research Blog — ReAct: Synergizing Reasoning and Acting in Language Models")
+
+
 LangChain의 창시자 Harrison Chase는 이 논문에서 영감을 받아 `hwchase17/react`라는 표준 프롬프트 템플릿을 만들었고, 이것이 LangChain Hub(현재 LangSmith Hub)에 최초로 올라간 프롬프트 중 하나입니다. `hub.pull("hwchase17/react")`로 가져올 수 있는 이 템플릿은 수천 개의 프로젝트에서 사용되며, ReAct 에이전트의 사실상 표준이 되었습니다.
 
 ### create_react_agent vs create_tool_calling_agent
@@ -408,6 +474,23 @@ LangChain에는 에이전트를 만드는 또 다른 방법인 `create_tool_call
 | 토큰 소비 | 많음 (Thought 텍스트 포함) | 적음 (함수 스키마만 사용) |
 | 파싱 안정성 | LLM이 형식을 벗어날 위험 있음 | 구조화된 출력으로 안정적 |
 | 적합한 상황 | 복잡한 추론, 디버깅, 학습용 | 프로덕션, 성능 중심 |
+
+> 📊 **그림 4**: create_react_agent vs create_tool_calling_agent 동작 방식 비교
+
+```mermaid
+flowchart TD
+    subgraph REACT["create_react_agent<br/>텍스트 기반 추론"]
+        R1["LLM 출력:<br/>Thought + Action 텍스트"] --> R2["텍스트 파싱<br/>ReActOutputParser"]
+        R2 --> R3["도구 이름 + 입력 추출"]
+    end
+    subgraph TOOL["create_tool_calling_agent<br/>함수 호출 API 기반"]
+        T1["LLM 출력:<br/>tool_calls JSON"] --> T2["구조화된 파싱<br/>자동 처리"]
+        T2 --> T3["도구 이름 + 입력 추출"]
+    end
+    R3 --> EXEC["도구 실행"]
+    T3 --> EXEC
+```
+
 
 `create_react_agent`는 에이전트의 사고 과정을 명시적으로 보여주기 때문에 학습과 디버깅에 이상적이고, 프로덕션에서는 `create_tool_calling_agent`나 LangGraph의 `create_react_agent`(별개 함수)를 권장합니다.
 
@@ -423,7 +506,7 @@ LangChain에는 에이전트를 만드는 또 다른 방법인 `create_tool_call
 
 > 🔥 **실무 팁**: 프롬프트 템플릿에서 `{agent_scratchpad}`는 반드시 **마지막**에 위치해야 합니다. LLM이 이전 추론 기록 바로 이어서 다음 Thought를 생성해야 하기 때문이에요. `{agent_scratchpad}` 뒤에 다른 텍스트를 넣으면 에이전트의 추론 흐름이 깨질 수 있습니다.
 
-> 🔥 **실무 팁**: 도구의 docstring(설명)이 에이전트의 도구 선택 정확도를 좌우합니다. `{tools}` 변수에 이 설명이 그대로 삽입되기 때문이에요. "데이터를 처리합니다"처럼 모호한 설명보다 "주어진 도시 이름으로 현재 날씨와 기온을 반환합니다"처럼 구체적으로 작성하세요. 도구 설계에 대해서는 [세션 12.4: 에이전트 도구 설계](./04-에이전트-도구-설계.md)에서 더 깊이 다룹니다.
+> 🔥 **실무 팁**: 도구의 docstring(설명)이 에이전트의 도구 선택 정확도를 좌우합니다. `{tools}` 변수에 이 설명이 그대로 삽입되기 때문이에요. "데이터를 처리합니다"처럼 모호한 설명보다 "주어진 도시 이름으로 현재 날씨와 기온을 반환합니다"처럼 구체적으로 작성하세요. 도구 설계에 대해서는 [세션 12.4: 에이전트 도구 설계](ch12/session_12_4.md)에서 더 깊이 다룹니다.
 
 ## 핵심 정리
 
@@ -440,7 +523,7 @@ LangChain에는 에이전트를 만드는 또 다른 방법인 `create_tool_call
 
 ## 다음 섹션 미리보기
 
-에이전트를 조립하고 실행하는 기본기를 익혔으니, 이제 에이전트의 동작을 **세밀하게 제어**할 차례입니다. [다음 세션: AgentExecutor 설정과 제어](./03-agentexecutor-설정과-제어.md)에서는 `max_iterations`, `max_execution_time`, `handle_parsing_errors`, `early_stopping_method`, `return_intermediate_steps` 등 `AgentExecutor`의 핵심 파라미터를 하나씩 깊이 파고듭니다. 에이전트를 프로덕션에서 안전하고 예측 가능하게 운영하는 데 꼭 필요한 내용이니 기대해 주세요.
+에이전트를 조립하고 실행하는 기본기를 익혔으니, 이제 에이전트의 동작을 **세밀하게 제어**할 차례입니다. [다음 세션: AgentExecutor 설정과 제어](ch12/session_12_3.md)에서는 `max_iterations`, `max_execution_time`, `handle_parsing_errors`, `early_stopping_method`, `return_intermediate_steps` 등 `AgentExecutor`의 핵심 파라미터를 하나씩 깊이 파고듭니다. 에이전트를 프로덕션에서 안전하고 예측 가능하게 운영하는 데 꼭 필요한 내용이니 기대해 주세요.
 
 ## 참고 자료
 
@@ -452,8 +535,8 @@ LangChain에는 에이전트를 만드는 또 다른 방법인 `create_tool_call
 
 ---
 ### 🔗 Related Sessions
-- [tool](11-도구tools와-함수-호출/01-도구-정의와-바인딩.md) (prerequisite)
-- [agent](./01-에이전트-개념과-react-패턴.md) (prerequisite)
-- [react_pattern](./01-에이전트-개념과-react-패턴.md) (prerequisite)
-- [agent_executor](./01-에이전트-개념과-react-패턴.md) (prerequisite)
-- [intermediate_steps](./01-에이전트-개념과-react-패턴.md) (prerequisite)
+- [tool](../11-도구tools와-함수-호출/01-도구-정의와-바인딩.md) (prerequisite)
+- [agent](../12-에이전트agent-기초/01-에이전트-개념과-react-패턴.md) (prerequisite)
+- [react_pattern](../12-에이전트agent-기초/01-에이전트-개념과-react-패턴.md) (prerequisite)
+- [agent_executor](../12-에이전트agent-기초/01-에이전트-개념과-react-패턴.md) (prerequisite)
+- [intermediate_steps](../12-에이전트agent-기초/01-에이전트-개념과-react-패턴.md) (prerequisite)

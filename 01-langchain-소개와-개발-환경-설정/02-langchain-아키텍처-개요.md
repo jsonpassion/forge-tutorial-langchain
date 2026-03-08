@@ -31,6 +31,24 @@ LangChain을 처음 접하는 개발자들이 가장 많이 겪는 혼란이 바
 
 LangChain 생태계는 크게 네 개의 계층으로 나뉩니다.
 
+![LangChain 생태계 스택 다이어그램 — LangChain-Core, LangChain-Community, LangChain, LangServe, LangSmith 계층 구조](../images/ch01/LangChain-Stack---split---V3-db54e269.png "LangChain 공식 블로그 — Towards LangChain 0.1")
+
+
+> 📊 **그림 1**: LangChain 4계층 패키지 아키텍처
+
+```mermaid
+graph TD
+    L4["langchain<br/>체인, 에이전트, 메모리"] --> L3["langchain-community<br/>서드파티 통합 모음"]
+    L4 --> L2
+    L3 --> L1["langchain-core<br/>Runnable, LCEL, 프롬프트, 파서"]
+    L2["langchain-openai / anthropic / google<br/>공식 파트너 통합"] --> L1
+    style L1 fill:#1a73e8,color:#fff
+    style L2 fill:#34a853,color:#fff
+    style L3 fill:#fbbc04,color:#000
+    style L4 fill:#ea4335,color:#fff
+```
+
+
 **1단계: `langchain-core` — 기초 골조**
 
 모든 것의 뿌리입니다. 추상 클래스, 인터페이스, 그리고 LCEL이 여기에 정의되어 있습니다.
@@ -97,6 +115,28 @@ from langchain.agents import create_tool_calling_agent # 에이전트 생성
 
 Runnable은 `langchain-core`에 정의된 **핵심 추상 클래스**로, LangChain의 모든 컴포넌트가 이 인터페이스를 구현합니다. Runnable이 제공하는 핵심 메서드는 세 가지입니다:
 
+> 📊 **그림 2**: Runnable 인터페이스 — 모든 컴포넌트의 공통 규격
+
+```mermaid
+classDiagram
+    class Runnable {
+        <<interface>>
+        +invoke(input) output
+        +stream(input) chunks
+        +batch(inputs) outputs
+        +ainvoke(input) output
+        +astream(input) chunks
+        +abatch(inputs) outputs
+    }
+    Runnable <|-- ChatPromptTemplate
+    Runnable <|-- ChatOpenAI
+    Runnable <|-- StrOutputParser
+    Runnable <|-- RunnableSequence
+    Runnable <|-- RunnableParallel
+    Runnable <|-- RunnableLambda
+```
+
+
 ```python
 from langchain_openai import ChatOpenAI
 
@@ -155,11 +195,39 @@ text = parser.invoke(response)
 
 모든 컴포넌트가 Runnable이니까, 하나의 출력이 다음의 입력으로 자연스럽게 흘러갈 수 있는 거죠. 이것이 바로 LCEL의 토대입니다.
 
+> 📊 **그림 5**: Runnable 컴포넌트 간 입출력 흐름
+
+```mermaid
+sequenceDiagram
+    participant U as 사용자
+    participant P as ChatPromptTemplate
+    participant M as ChatOpenAI
+    participant O as StrOutputParser
+    U->>P: invoke(topic: '인공지능')
+    P->>M: ChatPromptValue
+    M->>O: AIMessage
+    O->>U: 순수 문자열
+```
+
+
 ### 개념 3: LCEL — 파이프 연산자의 마법
 
 > 💡 **비유**: 공장의 **컨베이어 벨트**를 상상해보세요. 원재료(사용자 입력)가 벨트에 올라가면, 첫 번째 공정(프롬프트 포맷팅)을 거치고, 두 번째 공정(LLM 처리)을 통과하고, 세 번째 공정(출력 파싱)에서 완제품이 나옵니다. LCEL의 파이프 연산자(`|`)는 이 컨베이어 벨트의 **연결 고리**입니다.
 
 LCEL(LangChain Expression Language)은 Runnable 컴포넌트를 **파이프 연산자**(`|`)로 연결하는 선언적 구문입니다. Session 1.1에서 이미 간단히 보았는데, 이번에는 내부 동작을 이해해봅시다.
+
+> 📊 **그림 3**: LCEL 파이프라인 — 데이터가 흘러가는 과정
+
+```mermaid
+flowchart LR
+    A["입력<br/>topic: 양자역학"] -->|invoke| B["ChatPromptTemplate<br/>프롬프트 포맷팅"]
+    B -->|ChatPromptValue| C["ChatOpenAI<br/>LLM 추론"]
+    C -->|AIMessage| D["StrOutputParser<br/>텍스트 추출"]
+    D -->|문자열| E["최종 결과"]
+    style A fill:#f0f0f0,color:#333
+    style E fill:#e8f5e9,color:#333
+```
+
 
 ```python
 from langchain_core.prompts import ChatPromptTemplate
@@ -236,6 +304,21 @@ print(result)  # "안녕하세요"
 **`RunnableParallel` — 여러 작업을 동시에**
 
 하나의 입력을 받아 여러 Runnable을 **병렬로** 실행하고, 결과를 딕셔너리로 묶어줍니다.
+
+> 📊 **그림 4**: RunnableParallel — 병렬 실행과 결과 합류
+
+```mermaid
+flowchart TD
+    INPUT["입력<br/>topic: 트랜스포머"] --> P["RunnableParallel"]
+    P --> S["summary_chain<br/>요약 생성"]
+    P --> K["keyword_chain<br/>키워드 추출"]
+    P --> R["RunnablePassthrough<br/>원본 보존"]
+    S --> MERGE["결과 딕셔너리"]
+    K --> MERGE
+    R --> MERGE
+    MERGE --> OUT["summary: '...'<br/>keywords: '...'<br/>original: topic"]
+```
+
 
 ```python
 from langchain_core.runnables import RunnableParallel, RunnablePassthrough
