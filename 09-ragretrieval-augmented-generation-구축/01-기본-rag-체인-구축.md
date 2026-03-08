@@ -60,7 +60,6 @@ flowchart LR
 ```
 
 
-![RAG 파이프라인 시퀀스 다이어그램 — 문서 수집(인덱싱)과 사용자 질의/검색/응답 생성의 전체 흐름](../images/ch09/rag-pipeline-ingest-query-flow-b-002ef890.png "NVIDIA Technical Blog — RAG 101: Demystifying Retrieval-Augmented Generation Pipelines")
 
 지금까지 Ch6~Ch8에서 1~4단계를 개별적으로 배웠습니다. 이번 섹션의 핵심은 이 모든 단계를 **하나의 체인으로 연결하는 5단계(생성)**를 추가하는 것입니다. 즉, 지금까지 배운 퍼즐 조각들을 하나로 맞추는 시간이에요.
 
@@ -521,7 +520,6 @@ A: RAG 파이프라인은 인덱싱(문서 로드, 분할, 임베딩 저장)과 
 
 Lewis 팀은 영감을 **정보 검색(Information Retrieval)** 분야에서 얻었습니다. "모델이 모든 걸 외우는 대신, 필요할 때 참고서를 찾아보게 하면 어떨까?" 이렇게 탄생한 것이 바로 RAG — **Retrieval-Augmented Generation**입니다.
 
-![RAG 아키텍처 — 사용자 질의가 Knowledge Sources에서 관련 정보를 검색한 뒤 LLM에 전달되어 응답을 생성하는 5단계 흐름](../images/ch09/jumpstart-fm-rag-bb93f8e0.jpg "AWS — What is Retrieval-Augmented Generation")
 
 2020년 NeurIPS에 발표된 논문 *"Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks"*에서, 그들은 **사전 학습된 seq2seq 모델**(생성기)과 **위키피디아의 Dense Passage Retrieval 인덱스**(검색기)를 결합했습니다. 결과는 놀라웠는데요 — Open-domain QA, 사실 검증, 슬롯 채우기 등 지식 집약적 과제에서 기존 방식을 크게 앞질렀거든요.
 

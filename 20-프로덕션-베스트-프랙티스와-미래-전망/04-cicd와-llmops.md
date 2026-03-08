@@ -66,7 +66,6 @@ graph TD
 | **평가(Eval)** | LLM 출력 품질 | 비결정적 | 프롬프트/체인 변경 PR |
 | **E2E 평가** | 전체 파이프라인 | 비결정적, 느림 | 나이틀리 빌드 |
 
-![AI 에이전트 테스트 피라미드 — 불확실성 허용 수준에 따른 테스트 계층 구분](../images/ch20/agent-testing-pyramid-7623a278.png "Testing Pyramid for AI Agents - Block Engineering Blog")
 
 ```python
 # 단위 테스트: 결정적 로직을 검증 (모든 PR에서 빠르게 실행)

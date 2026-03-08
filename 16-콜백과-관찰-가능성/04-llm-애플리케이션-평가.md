@@ -158,7 +158,6 @@ sequenceDiagram
 
 > 💡 **비유**: 모든 평가 기준을 직접 만들 필요는 없습니다. 마치 대학교 시험에서 교수가 직접 채점하는 것(커스텀 평가기)과 OMR 기계가 자동 채점하는 것(프리빌트 평가기), 그리고 외부 전문가에게 에세이 채점을 맡기는 것(LLM-as-Judge)이 있듯이, LangSmith도 다양한 채점 방식을 제공합니다.
 
-![LLM-as-Judge 평가 프로세스 — 입력-출력 쌍을 판사 LLM에 전달하여 품질을 채점하는 워크플로우](../images/ch16/66f7172913e46c4ec934e118_66f70192027e07a-e96a8df0.png "Evidently AI — LLM-as-a-Judge Complete Guide")
 
 LangChain 팀이 만든 **OpenEvals** 라이브러리는 즉시 사용 가능한 평가기를 제공합니다. 특히 `create_llm_as_judge`는 LLM을 활용해 복잡한 품질 기준(정확성, 간결성, 환각 여부 등)을 자동으로 평가합니다.
 

@@ -396,7 +396,6 @@ app = FastAPI(
 - **ReDoc**: `http://localhost:8000/redoc`
 - **OpenAPI JSON**: `http://localhost:8000/openapi.json`
 
-![FastAPI Swagger UI에서 태그별로 그룹화된 API 문서 화면](../images/ch17/image02-8a3c0320.png "FastAPI 공식 문서 — Metadata and Docs URLs")
 
 
 ## 실습: 직접 해보기

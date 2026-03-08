@@ -482,7 +482,6 @@ Reciprocal Rank Fusion은 2009년 워털루 대학교의 Gordon V. Cormack, Char
 
 2024년 초, Zackary Rackauckas가 arXiv에 발표한 논문 ["RAG-Fusion: a New Take on Retrieval-Augmented Generation"](https://arxiv.org/abs/2402.03367)은 2009년의 RRF 알고리즘을 RAG 파이프라인에 창의적으로 적용했습니다. 핵심 아이디어는 이렇습니다: 서로 다른 검색 *시스템*을 융합하는 대신, LLM으로 생성한 서로 다른 *쿼리*의 결과를 융합하자. 이 접근법은 별도의 검색 인프라 추가 없이도 단일 벡터 스토어에서 검색 품질을 크게 향상시킬 수 있다는 점에서 실용적인 돌파구가 되었습니다.
 
-![RAG-Fusion 아키텍처 — 원본 질문을 LLM이 n개의 쿼리로 확장하고, 각각 벡터 검색 후 RRF로 재순위화하여 최종 답변을 생성하는 전체 파이프라인](../images/ch08/Diag1-a10fbcb8.png "RAG-Fusion: a New Take on Retrieval-Augmented Generation (Rackauckas, 2024)")
 
 
 ### k=60은 왜 60일까?

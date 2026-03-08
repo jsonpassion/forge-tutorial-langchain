@@ -81,7 +81,6 @@ tools = [get_weather, search_places]
 
 ReAct는 **Re**asoning(추론) + **Act**ing(행동)의 합성어로, 2022년 프린스턴 대학의 Shunyu Yao 등이 발표한 논문에서 제안된 패턴입니다. 에이전트의 실행 루프를 세 단계로 구성합니다:
 
-![ReAct 패턴 개요 — Standard, CoT(추론만), Act(행동만), ReAct(추론+행동) 네 가지 접근법 비교](../images/ch12/Screen_Shot_2022-11-08_at_8_53_49_AM-bf9d57b3.png "Google Research Blog: ReAct")
 
 
 > 📊 **그림 2**: ReAct 패턴의 Thought-Action-Observation 루프
@@ -424,7 +423,6 @@ for i, (action, observation) in enumerate(result2["intermediate_steps"]):
 
 연구팀은 HotPotQA(질의응답), Fever(사실 검증), ALFWorld(텍스트 게임), WebShop(웹 쇼핑) 네 가지 벤치마크에서 실험했는데요, 놀라운 결과가 나왔습니다. 추론만 하는 모델은 환각(hallucination)에 빠지기 쉬웠고, 행동만 하는 모델은 방향을 잃기 쉬웠습니다. 하지만 **둘을 교차**시키자, 추론이 행동의 방향을 잡아주고, 행동의 결과가 추론을 교정해주는 선순환이 일어났습니다. ALFWorld 벤치마크에서는 기존 모방 학습보다 무려 34%나 높은 성공률을 기록했죠.
 
-![HotpotQA 벤치마크에서 CoT, Act, ReAct 접근법의 추론 과정 비교](../images/ch12/HotPotQA-ced34f4c.png "Google Research Blog: ReAct")
 
 
 이 논문은 ICLR 2023에서 발표되었고, 이후 LangChain을 비롯한 거의 모든 에이전트 프레임워크의 기본 아키텍처로 채택되었습니다. 지금 우리가 `create_react_agent`를 호출할 때마다, 바로 이 연구의 성과 위에서 작업하고 있는 셈입니다.

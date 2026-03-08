@@ -498,7 +498,6 @@ print("\n✅ 실습 완료!")
 
 이들은 2년간의 연구와 엔지니어링 끝에 **FAISS**를 개발하여 2017년 3월에 오픈소스로 공개했습니다. 놀랍게도 당시 기준 최첨단 대비 **8.5배 빠른 성능**을 달성했죠. 핵심 비결은 **역파일 인덱스(IVF, Inverted File Index)**와 **곱 양자화(Product Quantization)** 같은 근사 최근접 이웃(ANN) 알고리즘이었습니다.
 
-![FAISS IVF 보로노이 셀 — 벡터 공간을 클러스터(셀)로 분할하여 검색 범위를 축소하는 원리](../images/ch07/ca1ed9b80fd0788cee513ef75c1b8bd8daad8571-e2a31b1c.png "Pinecone — Introduction to Facebook AI Similarity Search (Faiss)")
 
 
 FAISS 내부에는 여러 종류의 인덱스가 있습니다:
@@ -506,7 +505,6 @@ FAISS 내부에는 여러 종류의 인덱스가 있습니다:
 - **IndexIVFFlat**: 벡터를 클러스터(보로노이 셀)로 나눠두고, 쿼리와 가까운 클러스터만 검색. 빠르지만 근사값
 - **IndexIVFPQ**: IVF + 곱 양자화로 메모리까지 절약. 대규모 데이터에 적합
 
-![곱 양자화(Product Quantization) — 원본 벡터를 서브벡터로 분할 후 클러스터링하여 압축하는 과정](../images/ch07/6eb8071e80abf8fa8d6c170270efd5db52a3168f-b8d0e371.png "Pinecone — Introduction to Facebook AI Similarity Search (Faiss)")
 
 
 LangChain의 FAISS 래퍼는 기본적으로 **IndexFlatL2**를 사용하므로, 정확한 검색 결과를 보장합니다. 수백만 건 이상의 대규모 데이터에서는 FAISS를 직접 사용하여 IVF 계열 인덱스를 구성하는 것을 고려해볼 수 있습니다.

@@ -36,7 +36,6 @@ $$P(token_i) = \frac{e^{z_i / T}}{\sum_j e^{z_j / T}}$$
 
 이게 의미하는 바는 이렇습니다: **temperature가 낮을수록** 확률이 높은 토큰에 집중하여 예측 가능하고 일관된 출력을 만들고, **temperature가 높을수록** 다양한 토큰에 기회를 주어 창의적이지만 때로는 엉뚱한 결과를 생성합니다.
 
-![Temperature 값(1.0, 0.5, 0.1)에 따른 토큰 확률 분포 변화 — 낮을수록 최고 확률 토큰에 집중됨](../images/ch02/1_qAEEn6ylVTMZcSZRsFEqsw-90126e66.png "Decoding Strategies in Large Language Models — Maxime Labonne")
 
 
 > 📊 **그림 1**: Temperature에 따른 토큰 선택 확률 변화
@@ -94,7 +93,6 @@ print("🔥 Temperature 1.2:", response_high.content[:100])
 
 `top_p`(nucleus sampling)는 확률이 높은 토큰부터 누적해서 합이 `top_p` 값에 도달할 때까지만 후보로 남기는 방식입니다. 나머지 토큰은 확률이 0으로 처리됩니다.
 
-![Nucleus Sampling: 누적 확률 기준으로 상위 토큰(빨간색)만 선택하고 나머지는 제외](../images/ch02/1_pIvIyaLxQ_b_M7ZaZncY8A-33edf046.gif "Decoding Strategies in Large Language Models — Maxime Labonne")
 
 
 > 📊 **그림 2**: Temperature와 top_p의 토큰 샘플링 파이프라인

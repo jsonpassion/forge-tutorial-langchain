@@ -27,7 +27,6 @@ LangChain 팀은 이런 현실적 문제를 해결하기 위해 **세 가지 핵
 
 이 도구들을 모르고 LangChain만 사용하는 것은, 좋은 엔진을 가졌지만 계기판도 없고 도로도 없는 자동차를 모는 것과 같습니다.
 
-![LangChain 생태계 스택 다이어그램 — LangChain Core, LangChain Community, LangServe, LangSmith가 계층별로 구성된 아키텍처](../images/ch01/LangChain-Stack---split---V3-db54e269.png "Towards LangChain 0.1 — LangChain 공식 블로그")
 
 > 📊 **그림 1**: LangChain 생태계 전체 구조
 
@@ -181,7 +180,6 @@ curl -X POST "http://localhost:8000/explain/invoke" \
 
 `http://localhost:8000/explain/playground`에 접속하면 **브라우저에서 바로 테스트**할 수 있는 Playground UI도 제공됩니다. Swagger 문서는 `http://localhost:8000/docs`에서 자동 생성되죠.
 
-![LangServe Playground UI — 채팅 형태로 체인을 테스트할 수 있는 브라우저 인터페이스](../images/ch01/chat_playground-08014cd9.png "LangServe GitHub Repository")
 
 > 📊 **그림 3**: LangServe의 요청 처리 흐름
 
@@ -286,7 +284,6 @@ print(result["answer"])
 
 LCEL 체인은 `A | B | C`로 직선적이지만, LangGraph는 이처럼 **분기, 합류, 반복**이 가능합니다. 이 능력이 진가를 발휘하는 건 [Ch13: LangGraph 기초](ch13/session_01.md)에서 본격적으로 다룹니다.
 
-![LangGraph Studio — 그래프 노드와 조건부 엣지를 시각적으로 보여주는 에이전트 IDE](../images/ch01/graph_screen-4b2c9e02.png "LangGraph Studio: The first agent IDE — LangChain 공식 블로그")
 
 > 📊 **그림 4**: LangGraph 예제 — 질문 분류 워크플로우
 

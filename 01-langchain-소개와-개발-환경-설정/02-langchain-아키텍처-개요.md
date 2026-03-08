@@ -31,7 +31,6 @@ LangChain을 처음 접하는 개발자들이 가장 많이 겪는 혼란이 바
 
 LangChain 생태계는 크게 네 개의 계층으로 나뉩니다.
 
-![LangChain 생태계 스택 다이어그램 — LangChain-Core, LangChain-Community, LangChain, LangServe, LangSmith 계층 구조](../images/ch01/LangChain-Stack---split---V3-db54e269.png "LangChain 공식 블로그 — Towards LangChain 0.1")
 
 
 > 📊 **그림 1**: LangChain 4계층 패키지 아키텍처

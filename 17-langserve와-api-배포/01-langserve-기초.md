@@ -152,7 +152,6 @@ Playground가 제공하는 기능은 다음과 같습니다:
 
 Playground는 별도의 설정 없이 `add_routes`를 호출하면 자동으로 활성화됩니다. 개발 중에 Postman이나 curl 없이도 체인을 빠르게 테스트할 수 있어 매우 편리합니다.
 
-![LangServe Playground UI — Configure 섹션에서 LLM/Retriever를 선택하고, Try it 섹션에서 입력값을 넣어 바로 테스트할 수 있다](../images/ch17/Screenshot-2023-10-19-at-18_07_14-2-a822883e.png "LangChain Blog — LangServe Playground and Configurability")
 
 
 > 📊 **그림 3**: 클라이언트-서버 호출 흐름 (invoke, stream, batch)

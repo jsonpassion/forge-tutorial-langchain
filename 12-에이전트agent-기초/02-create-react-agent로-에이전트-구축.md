@@ -458,7 +458,6 @@ Final Answer: 서울(22°C)과 도쿄(24°C)의 기온 차이는 2°C이며, 서
 
 `create_react_agent`에서 사용하는 프롬프트 형식은 2022년 Shunyu Yao 등이 발표한 논문 *"ReAct: Synergizing Reasoning and Acting in Language Models"*에서 비롯되었습니다. 이 논문의 핵심 통찰은 놀라울 정도로 단순했는데요 — LLM에게 "생각을 먼저 말해봐(Thought)"라고 시킨 뒤 "그러면 뭘 해야 할까(Action)?"라고 물으면, LLM이 훨씬 정확하게 도구를 선택한다는 것이었습니다.
 
-![ReAct 논문 Figure 1 — Standard, Chain-of-Thought, Act-only, ReAct 네 가지 프롬프팅 방식 비교](../images/ch12/Screen_Shot_2022-11-08_at_8_53_49_AM-02c86fae.png "Google Research Blog — ReAct: Synergizing Reasoning and Acting in Language Models")
 
 
 LangChain의 창시자 Harrison Chase는 이 논문에서 영감을 받아 `hwchase17/react`라는 표준 프롬프트 템플릿을 만들었고, 이것이 LangChain Hub(현재 LangSmith Hub)에 최초로 올라간 프롬프트 중 하나입니다. `hub.pull("hwchase17/react")`로 가져올 수 있는 이 템플릿은 수천 개의 프로젝트에서 사용되며, ReAct 에이전트의 사실상 표준이 되었습니다.

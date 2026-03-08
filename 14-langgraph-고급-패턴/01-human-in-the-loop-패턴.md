@@ -28,7 +28,6 @@ flowchart LR
 
 ## 왜 알아야 할까?
 
-![LangGraph Human-in-the-Loop 승인/거부 워크플로우 — LLM이 Human 노드를 거쳐 Approve 또는 Reject 분기로 나뉘는 공식 다이어그램](../images/ch14/approve-or-reject-f508852f.png "LangChain Blog — Making it easier to build human-in-the-loop agents with interrupt")
 
 
 AI 에이전트가 이메일을 보내거나, 데이터베이스를 수정하거나, 결제를 처리한다고 상상해 보세요. 만약 에이전트가 잘못된 판단을 내렸는데 아무런 확인 없이 실행된다면 어떻게 될까요? 잘못된 사람에게 기밀 이메일이 전송되거나, 중요한 데이터가 삭제될 수 있습니다.
@@ -185,7 +184,6 @@ graph = builder.compile(
 
 ### 개념 5: 도구 실행 전 승인 워크플로우
 
-![LangGraph 도구 실행 전 Human 검토 흐름 — LLM에서 Human을 거쳐 Tool Executor로 이어지는 공식 다이어그램](../images/ch14/tool-call-review-ba7f02a8.png "LangChain Blog — Making it easier to build human-in-the-loop agents with interrupt")
 
 
 실제로 가장 많이 쓰이는 HITL 패턴은 **에이전트가 도구를 호출하기 전에 사용자 승인을 받는 것**입니다. 예를 들어, 에이전트가 이메일을 보내려 할 때 "정말로 이 이메일을 보낼까요?"라고 물어보는 거죠.

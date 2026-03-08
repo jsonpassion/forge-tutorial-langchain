@@ -302,7 +302,6 @@ graph LR
 | **비용 증가** | 매 요청마다 전체 히스토리를 전송하므로 API 호출 비용이 기하급수적으로 늘어난다 |
 | **Lost in the Middle** | 히스토리가 길어지면 모델이 중간 부분의 정보를 무시하는 현상이 발생한다 |
 
-![Lost in the Middle — 입력 컨텍스트 내 관련 정보 위치에 따른 U자형 성능 곡선. 시작과 끝에 있을 때 정확도가 높고, 중간에 있을 때 크게 하락한다.](../images/ch09/x1-3f42a9f9.png "Lost in the Middle: How Language Models Use Long Contexts (Liu et al., 2023)")
 
 
 ## 실습: 직접 해보기
