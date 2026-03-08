@@ -1,9 +1,8 @@
 {
-  "title": "2026: LangChain 완전 정복",
-  "subtitle": "LLM 애플리케이션 프레임워크의 모든 것",
-  "description": "LangChain을 활용한 LLM 애플리케이션 개발",
+  "title": "2026: LangChain Mastery 완전 정복",
+  "subtitle": "20챕터 106섹션 튜토리얼",
   "version": "1.0.0",
-  "lastUpdated": "2026-03-05",
+  "lastUpdated": "2026-03-08",
   "language": "ko",
   "author": "Jason",
   "chapters": [
@@ -783,5 +782,6 @@
         }
       ]
     }
-  ]
+  ],
+  "resources": {}
 }
